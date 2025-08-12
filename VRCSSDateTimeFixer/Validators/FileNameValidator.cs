@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -8,7 +7,7 @@ using System.Text.RegularExpressions;
 // - 日付・時刻情報の抽出
 // - 解像度情報の抽出
 
-namespace VRChatDateTimeFixer.Validators
+namespace VRCSSTimeFixer.Validators
 {
     /// <summary>
     /// VRChatのスクリーンショットファイル名を検証するための静的クラスです。
@@ -37,7 +36,7 @@ namespace VRChatDateTimeFixer.Validators
         /// 形式: VRChat_幅x高さ_YYYY-MM-DD_HH-mm-ss.fff.png
         /// 例: VRChat_1920x1080_2022-08-31_21-54-39.227.png
         /// </summary>
-        private const string RegexPattern = 
+        private const string RegexPattern =
             @"^VRChat_                  # 固定文字列
             (?<width>\d{1,5})          # 幅（1-5桁の数字）
             x                           # 区切り文字
@@ -78,8 +77,8 @@ namespace VRChatDateTimeFixer.Validators
         /// </summary>
         private static readonly Regex Format1Regex = new(
             RegexPattern,
-            RegexOptions.IgnorePatternWhitespace | 
-            RegexOptions.IgnoreCase | 
+            RegexOptions.IgnorePatternWhitespace |
+            RegexOptions.IgnoreCase |
             RegexOptions.Compiled);
 
         #endregion
@@ -183,7 +182,7 @@ namespace VRChatDateTimeFixer.Validators
         /// </summary>
         /// <param name="value">検証する解像度の値</param>
         /// <returns>値が有効な範囲内の場合はtrue、それ以外はfalse</returns>
-        private static bool IsValidResolutionValue(int value) => 
+        private static bool IsValidResolutionValue(int value) =>
             value is >= MinResolution and <= MaxResolution;
 
         /// <summary>
@@ -210,7 +209,7 @@ namespace VRChatDateTimeFixer.Validators
             // サポートする日付時刻のフォーマットを指定
             // 現在は1つのフォーマットのみをサポート
             string[] formats = { "yyyy-MM-dd HH:mm:ss" };
-            
+
             // DateTime.TryParseExactを使用して日付時刻の検証
             // 戻り値は不要なため、out _ で破棄
             return DateTime.TryParseExact(

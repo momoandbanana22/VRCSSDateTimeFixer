@@ -1,4 +1,4 @@
-﻿namespace VRChatDateTimeFixer
+﻿namespace VRCSSTimeFixer
 {
     internal class Program
     {
