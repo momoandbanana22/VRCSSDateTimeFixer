@@ -36,7 +36,7 @@ namespace VRCSSDateTimeFixer.Validators
         /// 形式: VRChat_幅x高さ_YYYY-MM-DD_HH-mm-ss.fff.png
         /// 例: VRChat_1920x1080_2022-08-31_21-54-39.227.png
         /// </summary>
-        private const string RegexPattern =
+        private const string Format1Pattern =
             @"^VRChat_                  # 固定文字列
             (?<width>\d{1,5})          # 幅（1-5桁の数字）
             x                           # 区切り文字
@@ -57,6 +57,55 @@ namespace VRCSSDateTimeFixer.Validators
             \.png$                      # 拡張子";
 
         /// <summary>
+        /// 形式1のファイル名を検証するための正規表現オブジェクト
+        /// 
+        /// オプション：
+        /// - IgnorePatternWhitespace: パターン内の空白を無視（コメント用）
+        /// - IgnoreCase: 大文字小文字を区別しない
+        /// - Compiled: 正規表現をコンパイルして高速化（アプリケーション起動は少し遅くなるが、実行は高速）
+        /// </summary>
+        private static readonly Regex Format1Regex = new(
+            Format1Pattern,
+            RegexOptions.IgnorePatternWhitespace |
+            RegexOptions.IgnoreCase |
+            RegexOptions.Compiled);
+
+        /// <summary>
+        /// フォーマット2用の正規表現パターン
+        /// 形式: VRChat_YYYY-MM-DD_HH-mm-ss.fff_幅x高さ.png
+        /// 例: VRChat_2022-08-31_21-54-39.227_1920x1080.png
+        /// 
+        /// グループ名:
+        /// - year: 年 (YYYY)
+        /// - month: 月 (MM)
+        /// - day: 日 (DD)
+        /// - hour: 時 (HH)
+        /// - minute: 分 (mm)
+        /// - second: 秒 (ss)
+        /// - millisecond: ミリ秒 (fff)
+        /// - width: 幅
+        /// - height: 高さ
+        /// 
+        /// オプション:
+        /// - IgnorePatternWhitespace: パターン内の空白を無視（コメント用）
+        /// - IgnoreCase: 大文字小文字を区別しない
+        /// - Compiled: 正規表現をコンパイルして高速化
+        /// </summary>
+        private const string Format2Pattern = @"
+    ^VRChat_                                 # プレフィックス
+    (?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})_  # 日付 (YYYY-MM-DD_)
+    (?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})\.(?<millisecond>\d{3})_  # 時刻 (HH-mm-ss.fff_)
+    (?<width>\d{1,5})x(?<height>\d{1,5})     # 解像度 (幅x高さ)
+    \.png$                                   # 拡張子
+";
+
+        private static readonly Regex Format2Regex = new(
+            Format2Pattern,
+            RegexOptions.IgnorePatternWhitespace |
+            RegexOptions.IgnoreCase |
+            RegexOptions.Compiled);
+
+        /// <summary>
         /// 解像度の最小値（1ピクセル）
         /// </summary>
         private const int MinResolution = 1;
@@ -67,24 +116,46 @@ namespace VRCSSDateTimeFixer.Validators
         /// </summary>
         private const int MaxResolution = 99999;
 
-        /// <summary>
-        /// 形式1のファイル名を検証するための正規表現オブジェクト
-        /// 
-        /// オプション：
-        /// - IgnorePatternWhitespace: パターン内の空白を無視（コメント用）
-        /// - IgnoreCase: 大文字小文字を区別しない
-        /// - Compiled: 正規表現をコンパイルして高速化（アプリケーション起動は少し遅くなるが、実行は高速）
-        /// </summary>
-        private static readonly Regex Format1Regex = new(
-            RegexPattern,
-            RegexOptions.IgnorePatternWhitespace |
-            RegexOptions.IgnoreCase |
-            RegexOptions.Compiled);
-
         #endregion
 
         /// <summary>
-        /// 指定されたファイル名が有効なVRChatスクリーンショットのファイル名かどうかを検証します。
+        /// 指定されたファイル名が有効なVRChatスクリーンショットのファイル名（形式1）かどうかを検証します。
+        /// 形式1: VRChat_幅x高さ_YYYY-MM-DD_HH-mm-ss.fff.png
+        /// 
+        /// このメソッドは以下の検証を行います：
+        /// 1. ファイル名がnullまたは空でないこと
+        /// 2. ファイル名が正規表現パターンに一致すること
+        /// 3. 解像度が有効な範囲内であること
+        /// 4. 日付・時刻が有効な値であること
+        /// 
+        /// 注意：
+        /// - ファイルの存在確認は行いません
+        /// - ファイルパスではなくファイル名のみを処理します
+        /// </summary>
+        /// <param name="fileName">検証するファイル名（フルパスまたはファイル名のみ）</param>
+        /// <returns>
+        /// ファイル名が有効なVRChatスクリーンショットの形式1に一致し、
+        /// かつ解像度・日時が有効な場合はtrue、
+        /// それ以外の場合はfalse
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// // 有効な形式の例
+        /// bool isValid1 = FileNameValidator.IsValidFormat1("VRChat_1920x1080_2022-08-31_21-54-39.227.png");
+        /// 
+        /// // 無効な形式の例
+        /// bool isValid2 = FileNameValidator.IsValidFormat1("invalid_file.png");
+        /// </code>
+        /// </example>
+        public static bool IsValidFormat1(string fileName)
+        {
+            return IsValidFileName(fileName, Format1Regex);
+        }
+
+        /// <summary>
+        /// ファイル名がVRChatのスクリーンショットフォーマット2に準拠しているか検証します。
+        /// 形式: VRChat_YYYY-MM-DD_HH-mm-ss.fff_幅x高さ.png
+        /// 例: VRChat_2022-08-31_21-54-39.227_1920x1080.png
         /// 
         /// このメソッドは以下の検証を行います：
         /// 1. ファイル名がnullまたは空でないこと
@@ -105,29 +176,47 @@ namespace VRCSSDateTimeFixer.Validators
         /// <example>
         /// <code>
         /// // 有効な形式の例
-        /// bool isValid1 = FileNameValidator.IsValid("VRChat_1920x1080_2022-08-31_21-54-39.227.png");
+        /// bool isValid = FileNameValidator.IsValidFormat2("VRChat_2022-08-31_21-54-39.227_1920x1080.png");
         /// 
         /// // 無効な形式の例
-        /// bool isValid2 = FileNameValidator.IsValid("invalid_file.png");
+        /// bool isInvalid = FileNameValidator.IsValidFormat2("invalid_file.png");
         /// </code>
         /// </example>
-        public static bool IsValidFormat1(string fileName)
+        /// <summary>
+        /// 指定されたファイル名が有効なVRChatスクリーンショットのファイル名（形式2）かどうかを検証します。
+        /// 形式2: VRChat_YYYY-MM-DD_HH-mm-ss.fff_幅x高さ.png
+        /// 
+        /// このメソッドは以下の検証を行います：
+        /// 1. ファイル名がnullまたは空でないこと
+        /// 2. ファイル名が正規表現パターンに一致すること
+        /// 3. 解像度が有効な範囲内であること
+        /// 4. 日付・時刻が有効な値であること
+        /// 
+        /// 注意：
+        /// - ファイルの存在確認は行いません
+        /// - ファイルパスではなくファイル名のみを処理します
+        /// </summary>
+        /// <param name="fileName">検証するファイル名（フルパスまたはファイル名のみ）</param>
+        /// <returns>
+        /// ファイル名が有効なVRChatスクリーンショットの形式2に一致し、
+        /// かつ解像度・日時が有効な場合はtrue、
+        /// それ以外の場合はfalse
+        /// </returns>
+        /// <example>
+        /// <code>
+        /// // 有効な形式の例
+        /// bool isValid1 = FileNameValidator.IsValidFormat2("VRChat_2022-08-31_21-54-39.227_1920x1080.png");
+        /// 
+        /// // 無効な形式の例
+        /// bool isInvalid = FileNameValidator.IsValidFormat2("invalid_file.png");
+        /// </code>
+        /// </example>
+        public static bool IsValidFormat2(string fileName)
         {
-            if (string.IsNullOrWhiteSpace(fileName))
-            {
-                return false;
-            }
-
-            var match = Format1Regex.Match(fileName);
-            if (!match.Success)
-            {
-                return false;
-            }
-
-            return IsValidResolution(match) && IsValidDateTime(match);
+            return IsValidFileName(fileName, Format2Regex);
         }
 
-        #region プライベートメソッド
+        #region プライベートヘルパーメソッド
 
         /// <summary>
         /// 正規表現のマッチ結果から解像度を検証します。
@@ -220,6 +309,29 @@ namespace VRCSSDateTimeFixer.Validators
                 out _);                 // パース結果は不要なため破棄
         }
 
+        /// <summary>
+        /// ファイル名が指定された正規表現パターンに一致し、かつ解像度と日時が有効かどうかを検証します。
+        /// </summary>
+        /// <param name="fileName">検証するファイル名</param>
+        /// <param name="regex">使用する正規表現</param>
+        /// <returns>ファイル名が有効な形式で、解像度と日時が有効な場合はtrue、それ以外はfalse</returns>
+        private static bool IsValidFileName(string fileName, Regex regex)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            var match = regex.Match(fileName);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            return IsValidResolution(match) && IsValidDateTime(match);
+        }
+
         #endregion
+
     }
 }
