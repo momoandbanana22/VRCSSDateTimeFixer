@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 // - 日付・時刻情報の抽出
 // - 解像度情報の抽出
 
-namespace VRCSSTimeFixer.Validators
+namespace VRCSSDateTimeFixer.Validators
 {
     /// <summary>
     /// VRChatのスクリーンショットファイル名を検証するための静的クラスです。

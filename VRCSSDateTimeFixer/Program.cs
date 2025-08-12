@@ -1,4 +1,4 @@
-﻿namespace VRCSSTimeFixer
+﻿namespace VRCSSDateTimeFixer
 {
     internal class Program
     {

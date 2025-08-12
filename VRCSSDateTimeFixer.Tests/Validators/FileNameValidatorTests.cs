@@ -1,7 +1,7 @@
-using VRCSSTimeFixer.Validators;
+using VRCSSDateTimeFixer.Validators;
 using Xunit;
 
-namespace VRCSSTimeFixer.Tests.Validators
+namespace VRCSSDateTimeFixer.Tests.Validators
 {
     public class FileNameValidatorTests
     {
