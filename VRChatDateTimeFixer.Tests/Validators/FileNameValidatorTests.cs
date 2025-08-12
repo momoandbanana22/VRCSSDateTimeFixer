@@ -17,5 +17,18 @@ namespace VRChatDateTimeFixer.Tests.Validators
             // Then: 有効なフォーマットと判定されること
             Assert.True(result);
         }
+
+        [Fact]
+        public void フォーマット1_無効なファイル名_Falseを返すこと()
+        {
+            // Given: 無効なファイル名
+            string fileName = "Invalid_FileName_Format.txt";
+
+            // When: フォーマット検証を実行
+            bool result = FileNameValidator.IsValidFormat1(fileName);
+
+            // Then: 無効なフォーマットと判定されること
+            Assert.False(result);
+        }
     }
 }
