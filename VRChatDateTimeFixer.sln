@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36401.2 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VRChatDateTimeFixer", "VRChatDateTimeFixer\VRChatDateTimeFixer.csproj", "{E0A84052-CACB-4344-BEF8-82232782CAC0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VRChatDateTimeFixer.Tests", "VRChatDateTimeFixer.Tests\VRChatDateTimeFixer.Tests.csproj", "{A007BF0E-5A0B-4EA8-A8B8-4122FD977C3F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E0A84052-CACB-4344-BEF8-82232782CAC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0A84052-CACB-4344-BEF8-82232782CAC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0A84052-CACB-4344-BEF8-82232782CAC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0A84052-CACB-4344-BEF8-82232782CAC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A007BF0E-5A0B-4EA8-A8B8-4122FD977C3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A007BF0E-5A0B-4EA8-A8B8-4122FD977C3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A007BF0E-5A0B-4EA8-A8B8-4122FD977C3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A007BF0E-5A0B-4EA8-A8B8-4122FD977C3F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AB904797-1E2A-4AF7-8FDD-D16C23DF2B56}
+	EndGlobalSection
+EndGlobal
