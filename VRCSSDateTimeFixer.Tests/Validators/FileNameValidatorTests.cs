@@ -118,5 +118,64 @@ namespace VRCSSDateTimeFixer.Tests.Validators
             // Then: 有効なフォーマットと判定されること
             Assert.True(result);
         }
+
+        #region ファイル名から日時を抽出する機能のテスト
+
+        [Fact]
+        public void 有効なフォーマット1のファイル名から日時を抽出できること()
+        {
+            // Given: 有効なフォーマット1のファイル名と期待される日時
+            string fileName = "VRChat_1920x1080_2022-08-31_21-54-39.227.png";
+            DateTime expected = new(2022, 8, 31, 21, 54, 39, 227);
+
+            // When: 日時抽出を実行
+            DateTime actual = FileNameValidator.GetDateTimeFromFileName(fileName);
+
+            // Then: 期待通りの日時が抽出されること
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public void 有効なフォーマット2のファイル名から日時を抽出できること()
+        {
+            // Given: 有効なフォーマット2のファイル名と期待される日時
+            string fileName = "VRChat_2022-08-31_21-54-39.227_1920x1080.png";
+            DateTime expected = new(2022, 8, 31, 21, 54, 39, 227);
+
+            // When: 日時抽出を実行
+            DateTime actual = FileNameValidator.GetDateTimeFromFileName(fileName);
+
+            // Then: 期待通りの日時が抽出されること
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("Invalid_FileName_Format.png")]
+        [InlineData("VRChat_1920x1080.png")]
+        [InlineData("")]
+        [InlineData(null)]
+        public void 無効なファイル名の場合は例外をスローすること(string invalidFileName)
+        {
+            // Given: 無効なファイル名
+
+            // When & Then: 例外がスローされることを確認
+            Assert.Throws<ArgumentException>(() => FileNameValidator.GetDateTimeFromFileName(invalidFileName));
+        }
+
+        [Fact]
+        public void うるう日を含むファイル名から正しく日時を抽出できること()
+        {
+            // Given: うるう日を含む有効なファイル名と期待される日時
+            string fileName = "VRChat_1920x1080_2024-02-29_12-34-56.789.png";
+            DateTime expected = new(2024, 2, 29, 12, 34, 56, 789);
+
+            // When: 日時抽出を実行
+            DateTime actual = FileNameValidator.GetDateTimeFromFileName(fileName);
+
+            // Then: 期待通りの日時が抽出されること
+            Assert.Equal(expected, actual);
+        }
+
+        #endregion
     }
 }

@@ -53,7 +53,7 @@ namespace VRCSSDateTimeFixer.Validators
             (?<minute>\d{2})           # 分（2桁）
             -                           # 区切り文字
             (?<second>\d{2})           # 秒（2桁）
-            \.\d{3}                    # ミリ秒（3桁）
+            \.(?<millisecond>\d{3})    # ミリ秒（3桁）
             \.png$                      # 拡張子";
 
         /// <summary>
@@ -333,5 +333,57 @@ namespace VRCSSDateTimeFixer.Validators
 
         #endregion
 
+        #region 日時抽出機能
+
+        /// <summary>
+        /// VRChatスクリーンショットのファイル名から日時を抽出します。
+        /// 形式1: VRChat_幅x高さ_YYYY-MM-DD_HH-mm-ss.fff.png
+        /// 形式2: VRChat_YYYY-MM-DD_HH-mm-ss.fff_幅x高さ.png
+        /// </summary>
+        /// <param name="fileName">VRChatスクリーンショットのファイル名</param>
+        /// <returns>抽出された日時を表すDateTimeオブジェクト</returns>
+        /// <exception cref="ArgumentException">
+        /// ファイル名がnullまたは空の場合、または有効な形式でない場合にスローされます。
+        /// </exception>
+        public static DateTime GetDateTimeFromFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                throw new ArgumentException("ファイル名を指定してください。", nameof(fileName));
+            }
+
+            // 形式1でマッチングを試みる
+            Match match = Format1Regex.Match(fileName);
+            if (!match.Success)
+            {
+                // 形式1にマッチしなければ形式2で試す
+                match = Format2Regex.Match(fileName);
+                if (!match.Success)
+                {
+                    throw new ArgumentException("有効なVRChatスクリーンショットのファイル名形式ではありません。", nameof(fileName));
+                }
+            }
+
+            try
+            {
+                // 日時コンポーネントを取得
+                int year = int.Parse(match.Groups["year"].Value);
+                int month = int.Parse(match.Groups["month"].Value);
+                int day = int.Parse(match.Groups["day"].Value);
+                int hour = int.Parse(match.Groups["hour"].Value);
+                int minute = int.Parse(match.Groups["minute"].Value);
+                int second = int.Parse(match.Groups["second"].Value);
+                int millisecond = int.Parse(match.Groups["millisecond"].Value);
+
+                // 日付の妥当性をチェック（DateTimeコンストラクタが例外をスローする可能性あり）
+                return new DateTime(year, month, day, hour, minute, second, millisecond, DateTimeKind.Local);
+            }
+            catch (Exception ex) when (ex is ArgumentOutOfRangeException || ex is FormatException)
+            {
+                throw new ArgumentException("ファイル名に含まれる日時が無効です。", nameof(fileName), ex);
+            }
+        }
+
+        #endregion
     }
 }
