@@ -75,12 +75,13 @@ namespace VRCSSDateTimeFixer.Tests.Services
         public void nullを指定した場合_失敗結果を返すこと()
         {
             // Given: nullのファイルパス
-            string nullPath = null;
+            string? nullPath = null;
 
             // When: 処理を実行
-            var result = VRChatScreenshotProcessor.ProcessFile(nullPath);
+            var result = VRChatScreenshotProcessor.ProcessFile(nullPath!);
 
             // Then: 失敗結果が返り、適切なエラーメッセージが含まれていること
+            Assert.NotNull(result);
             Assert.False(result.Success);
             Assert.Contains("ファイルパスが指定されていません", result.Message);
             Assert.Null(result.ExtractedDateTime);
