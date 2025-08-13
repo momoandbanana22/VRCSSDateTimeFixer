@@ -1,47 +1,91 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using VRCSSDateTimeFixer.Validators;
 
 namespace VRCSSDateTimeFixer.Services
 {
+    // エラーメッセージを定数化
+    internal static class ErrorMessages
+    {
+        public const string FilePathNotSpecified = "ファイルパスが指定されていません。";
+        public const string FileNotFound = "ファイルが見つかりません: {0}";
+        public const string FileIsReadOnly = "{0}: 読み取り専用ファイルのためスキップします";
+        public const string UnsupportedFileFormat = "{0}: サポートされていないファイル形式です";
+        public const string InvalidFileNameFormat = "{0}: ファイル名から日時を抽出できません";
+        public const string SuccessMessage = "{0} を処理しました";
+    }
     public static class VRChatScreenshotProcessor
     {
+        private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ".png"
+        };
+
         public static ProcessResult ProcessFile(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(filePath))
+            // バリデーション
+            var validationResult = ValidateFile(filePath);
+            if (!validationResult.IsValid)
             {
-                return ProcessResult.Failure("ファイルパスが指定されていません。");
+                return ProcessResult.Failure(validationResult.ErrorMessage);
             }
 
-            if (!File.Exists(filePath))
-            {
-                return ProcessResult.Failure($"ファイルが見つかりません: {filePath}");
-            }
-
-            // ファイル名から日時を抽出
             string fileName = Path.GetFileName(filePath);
             DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
             
             if (!dateTime.HasValue)
             {
-                return ProcessResult.Failure($"ファイル名から日時を抽出できません: {fileName}");
+                return ProcessResult.Failure(
+                    string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
             }
 
             // ファイルのタイムスタンプを更新
             bool timestampUpdated = FileTimestampUpdater.UpdateFileTimestamp(filePath);
             
-            // 画像ファイルの場合はExif情報も更新
+            // Exif情報を更新
             bool exifUpdated = false;
-            if (Path.GetExtension(filePath).Equals(".png", StringComparison.OrdinalIgnoreCase))
+            if (IsSupportedImageFile(filePath))
             {
                 exifUpdated = FileTimestampUpdater.UpdateExifDate(filePath);
             }
 
             return ProcessResult.CreateSuccess(
                 dateTime.Value,
-                $"ファイルを処理しました: {fileName}",
+                string.Format(ErrorMessages.SuccessMessage, fileName),
                 timestampUpdated,
                 exifUpdated);
+        }
+
+        private static (bool IsValid, string ErrorMessage) ValidateFile(string filePath)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return (false, ErrorMessages.FilePathNotSpecified);
+            }
+
+            if (!File.Exists(filePath))
+            {
+                return (false, string.Format(ErrorMessages.FileNotFound, filePath));
+            }
+
+            if ((File.GetAttributes(filePath) & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+            {
+                return (false, string.Format(ErrorMessages.FileIsReadOnly, Path.GetFileName(filePath)));
+            }
+
+            if (!IsSupportedImageFile(filePath))
+            {
+                return (false, string.Format(ErrorMessages.UnsupportedFileFormat, Path.GetFileName(filePath)));
+            }
+
+            return (true, string.Empty);
+        }
+
+        private static bool IsSupportedImageFile(string filePath)
+        {
+            string extension = Path.GetExtension(filePath);
+            return SupportedExtensions.Contains(extension);
         }
     }
 

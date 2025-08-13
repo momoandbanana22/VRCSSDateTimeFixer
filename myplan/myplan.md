@@ -27,6 +27,9 @@
 ## Notes
 - ユーザーは日本人なので、日本語で会話すること。
 - プランモードで編集するファイルは、このmyplan.mdファイルです。 AIがこのファイルを編集します。
+- 既存のコードを確認して進めて行くこと。 実装済み・未実装・テスト済み、テスト未を確認してから、進めて行くこと。
+
+Revert
 - Visual Studio Community 2022 is the latest version as of Aug 2025 and supports .NET 8.0.
 - For TDD, create one solution with a production project and a test project.
 - Use "コンソール アプリ" (.NET, not .NET Framework) for cross-platform, modern development.
