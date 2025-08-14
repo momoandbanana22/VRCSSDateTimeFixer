@@ -1,33 +1,38 @@
 using System.CommandLine;
 using VRCSSDateTimeFixer.Services;
+using VRCSSDateTimeFixer.Validators;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace VRCSSDateTimeFixer
 {
-    internal class Program
+    public class Program
     {
-        static async Task<int> Main(string[] args)
+        // コマンドライン引数とオプションを定義
+        public static readonly Argument<string> PathArgument = new(
+            name: "path",
+            description: "処理するファイルまたはディレクトリのパス");
+
+        public static readonly Option<bool> RecursiveOption = new(
+            aliases: new[] { "-r", "--recursive" },
+            description: "サブディレクトリを再帰的に処理する",
+            getDefaultValue: () => false);
+
+        private static readonly ProgressDisplay _progressDisplay = new();
+
+        public static int Main(string[] args)
         {
-            var rootCommand = new RootCommand("VRChatスクリーンショットのメタデータを更新するツール");
+            var rootCommand = BuildCommandLine();
+            return rootCommand.Invoke(args);
+        }
 
-            // パス引数（必須）
-            var pathArgument = new Argument<string>(
-                name: "path",
-                description: "処理するファイルまたはディレクトリのパス");
+        public static RootCommand BuildCommandLine()
+        {
+            var rootCommand = new RootCommand("VRChatのスクリーンショットのファイル名から日時情報を抽出し、ファイルのタイムスタンプとExif情報を更新します。");
+            
+            rootCommand.AddArgument(PathArgument);
+            rootCommand.AddOption(RecursiveOption);
 
-            // 再帰オプション
-            var recursiveOption = new Option<bool>(
-                name: "--recursive",
-                description: "サブディレクトリも再帰的に処理します",
-                getDefaultValue: () => false);
-
-            // 再帰オプションのエイリアスを追加
-            recursiveOption.AddAlias("-r");
-
-            // コマンドに引数とオプションを追加
-            rootCommand.AddArgument(pathArgument);
-            rootCommand.AddOption(recursiveOption);
-
-            // コマンドのハンドラを設定
             rootCommand.SetHandler(async (path, recursive) =>
             {
                 try
@@ -36,31 +41,22 @@ namespace VRCSSDateTimeFixer
                 }
                 catch (Exception ex)
                 {
-                    await Console.Error.WriteLineAsync($"エラーが発生しました: {ex.Message}");
+                    _progressDisplay.ShowError($"エラーが発生しました: {ex.Message}");
                     Environment.Exit(1);
                 }
-            }, pathArgument, recursiveOption);
+            }, PathArgument, RecursiveOption);
 
-            // コマンドを実行
-            return await rootCommand.InvokeAsync(args);
+            return rootCommand;
         }
 
         private static async Task ProcessPathAsync(string path, bool recursive)
         {
             if (File.Exists(path))
             {
-                // ファイルを処理
-                var result = await VRChatScreenshotProcessor.ProcessFileAsync(path);
-                Console.WriteLine(result.Message);
-
-                if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                {
-                    await Console.Error.WriteLineAsync($"エラー: {result.ErrorMessage}");
-                }
+                await ProcessFileAsync(path);
             }
             else if (Directory.Exists(path))
             {
-                // ディレクトリ内のファイルを処理
                 await ProcessDirectoryAsync(path, recursive);
             }
             else
@@ -69,38 +65,55 @@ namespace VRCSSDateTimeFixer
             }
         }
 
+        private static async Task ProcessFileAsync(string filePath)
+        {
+            try
+            {
+                _progressDisplay.StartProcessing(filePath);
+                
+                // ファイル名から日時を取得
+                string fileName = Path.GetFileName(filePath);
+                DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
+                
+                if (!dateTime.HasValue)
+                {
+                    _progressDisplay.ShowError($"{filePath}: ファイル名から日時を抽出できません");
+                    return;
+                }
+
+                _progressDisplay.ShowExtractedDateTime(dateTime.Value);
+
+                // ファイルのタイムスタンプを更新
+                var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(filePath);
+                _progressDisplay.ShowCreationTimeUpdateResult(creationTimeUpdated);
+                _progressDisplay.ShowLastWriteTimeUpdateResult(lastWriteTimeUpdated);
+                
+                // Exif情報を更新
+                bool exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
+                _progressDisplay.ShowExifUpdateResult(exifUpdated);
+            }
+            catch (Exception ex)
+            {
+                _progressDisplay.ShowError($"{filePath}: {ex.Message}");
+            }
+        }
+
         private static async Task ProcessDirectoryAsync(string directoryPath, bool recursive)
         {
-            var searchOption = recursive
-                ? SearchOption.AllDirectories
-                : SearchOption.TopDirectoryOnly;
-
+            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var files = Directory.EnumerateFiles(directoryPath, "*.png", searchOption);
+            
             int processedCount = 0;
             int totalFiles = files.Count();
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            Console.WriteLine($"処理を開始します: {directoryPath}");
+            _progressDisplay.StartProcessing(directoryPath);
             Console.WriteLine($"対象ファイル数: {totalFiles} 件");
             Console.WriteLine(new string('=', 80));
 
             foreach (var file in files)
             {
-                try
-                {
-                    var result = await VRChatScreenshotProcessor.ProcessFileAsync(file);
-                    Console.WriteLine(result.Message);
-
-                    if (!result.Success && !string.IsNullOrEmpty(result.ErrorMessage))
-                    {
-                        await Console.Error.WriteLineAsync($"エラー: {result.ErrorMessage}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await Console.Error.WriteLineAsync($"エラーが発生しました ({file}): {ex.Message}");
-                }
-
+                await ProcessFileAsync(file);
                 processedCount++;
 
                 // 進捗表示（10ファイルごと、または最後のファイル）
@@ -116,8 +129,6 @@ namespace VRCSSDateTimeFixer
                     Console.WriteLine($"進捗: {processedCount}/{totalFiles} 件 ({processedCount * 100 / Math.Max(1, totalFiles)}%) " +
                                     $"経過: {elapsedTime} 残り: {remainingTime}");
                 }
-
-                await Task.Delay(10); // システム負荷軽減のための遅延
             }
 
             stopwatch.Stop();
