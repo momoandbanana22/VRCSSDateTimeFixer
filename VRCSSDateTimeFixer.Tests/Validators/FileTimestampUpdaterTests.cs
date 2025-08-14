@@ -4,7 +4,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
 
-namespace VRCSSDateTimeFixer.Tests
+namespace VRCSSDateTimeFixer.Tests.Validators
 {
     public class FileTimestampUpdaterTests : IDisposable
     {
@@ -108,6 +108,67 @@ namespace VRCSSDateTimeFixer.Tests
             // Assert
             Assert.True(result);
             AssertExifDateMatchesExpected(testImageFile);
+        }
+
+        [Fact]
+        public async Task UpdateFileTimestampAsync_読み取り専用ファイルのタイムスタンプを更新できること()
+        {
+            // Arrange
+            string testFile = CreateTestFile("test.txt");
+            string testImageFile = MoveToTestImageFile(testFile);
+            File.SetAttributes(testImageFile, FileAttributes.ReadOnly);
+
+            try
+            {
+                // Act
+                var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater
+                    .UpdateFileTimestampAsync(testImageFile);
+
+                // Assert
+                Assert.True(creationTimeUpdated);
+                Assert.True(lastWriteTimeUpdated);
+                var fileInfo = new FileInfo(testImageFile);
+                AssertFileTimestampsMatchExpected(fileInfo);
+            }
+            finally
+            {
+                // テスト後に読み取り専用属性を解除
+                File.SetAttributes(testImageFile, FileAttributes.Normal);
+            }
+        }
+
+        [Fact]
+        public async Task UpdateFileTimestampAsync_無効なファイル名形式の場合はfalseを返すこと()
+        {
+            // Arrange
+            string invalidFileName = "invalid_filename.txt";
+            string testFile = CreateTestFile(invalidFileName);
+
+            // Act
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater
+                .UpdateFileTimestampAsync(testFile);
+
+            // Assert
+            Assert.False(creationTimeUpdated);
+            Assert.False(lastWriteTimeUpdated);
+        }
+
+        [Fact]
+        public async Task UpdateFileTimestampAsync_異なる形式のファイル名でも正しく日時を抽出できること()
+        {
+            // Arrange
+            string testFile = CreateTestFile("VRChat_2022-08-31_21-54-39.227_1920x1080.png");
+            string testImageFile = MoveToTestImageFile(testFile);
+
+            // Act
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater
+                .UpdateFileTimestampAsync(testImageFile);
+
+            // Assert
+            Assert.True(creationTimeUpdated);
+            Assert.True(lastWriteTimeUpdated);
+            var fileInfo = new FileInfo(testImageFile);
+            AssertFileTimestampsMatchExpected(fileInfo);
         }
 
         #region プライベートヘルパーメソッド
