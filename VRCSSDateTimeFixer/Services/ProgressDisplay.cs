@@ -1,11 +1,36 @@
+using System.Text;
+
 namespace VRCSSDateTimeFixer.Services
 {
     /// <summary>
     /// ファイル処理の進捗をコンソールに表示するためのクラスです。
     /// このクラスはスレッドセーフではありません。
     /// </summary>
-    public class ProgressDisplay
+    public class ProgressDisplay : IDisposable
     {
+        private readonly TextWriter _output;
+        private readonly TextWriter _errorOutput;
+        private readonly StringBuilder _outputBuffer = new();
+        private bool _isDisposed;
+
+        /// <summary>
+        /// 新しいインスタンスを初期化します。
+        /// </summary>
+        public ProgressDisplay() : this(Console.Out, Console.Error)
+        {
+        }
+
+        /// <summary>
+        /// テスト用の新しいインスタンスを初期化します。
+        /// </summary>
+        /// <param name="output">標準出力の代わりに使用する<see cref="TextWriter"/></param>
+        /// <param name="errorOutput">標準エラー出力の代わりに使用する<see cref="TextWriter"/></param>
+        public ProgressDisplay(TextWriter output, TextWriter errorOutput)
+        {
+            _output = output ?? throw new ArgumentNullException(nameof(output));
+            _errorOutput = errorOutput ?? throw new ArgumentNullException(nameof(errorOutput));
+        }
+
         /// <summary>
         /// ファイル処理の開始を表示します。
         /// </summary>
@@ -15,8 +40,9 @@ namespace VRCSSDateTimeFixer.Services
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentNullException(nameof(fileName));
 
-            // ファイル名を出力（改行なし）
-            Console.Write(fileName);
+            // バッファをクリアしてファイル名を追加
+            _outputBuffer.Clear();
+            _outputBuffer.Append(fileName);
         }
 
         /// <summary>
@@ -25,8 +51,9 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="dateTime">抽出した日時</param>
         public void ShowExtractedDateTime(DateTime dateTime)
         {
-            // 日時を出力（コロン付き、改行なし）
-            Console.Write($":{dateTime:yyyy年MM月dd日 HH時mm分ss.fff}");
+            if (_isDisposed) return;
+            // 日時をバッファに追加（コロン付き）
+            _outputBuffer.Append($":{dateTime:yyyy年MM月dd日 HH時mm分ss.fff}");
         }
 
         /// <summary>
@@ -35,10 +62,8 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="isUpdated">更新が成功した場合はtrue、それ以外はfalse</param>
         public void ShowCreationTimeUpdateResult(bool isUpdated)
         {
-            // 作成日時更新前の表示（先頭にスペース、改行なし）
-            Console.Write($" 作成日時：");
-            // 作成日時更新後の表示（改行なし）
-            Console.Write($"{(isUpdated ? "更新済" : "スキップ")}");
+            if (_isDisposed) return;
+            _outputBuffer.Append($" 作成日時：{(isUpdated ? "更新済" : "スキップ")}");
         }
 
         /// <summary>
@@ -47,10 +72,8 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="isUpdated">更新が成功した場合はtrue、それ以外はfalse</param>
         public void ShowLastWriteTimeUpdateResult(bool isUpdated)
         {
-            // 更新日時更新前の表示（先頭にスペース、改行なし）
-            Console.Write($" 更新日時：");
-            // 更新日時更新後の表示（改行なし）
-            Console.Write($"{(isUpdated ? "更新済" : "スキップ")}");
+            if (_isDisposed) return;
+            _outputBuffer.Append($" 更新日時：{(isUpdated ? "更新済" : "スキップ")}");
         }
 
         /// <summary>
@@ -59,10 +82,10 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="isUpdated">更新が成功した場合はtrue、それ以外はfalse</param>
         public void ShowExifUpdateResult(bool isUpdated)
         {
-            // 撮影日時更新前の表示（先頭にスペース、改行なし）
-            Console.Write($" 撮影日時：");
-            // 撮影日時更新後の表示（最後に改行）
-            Console.WriteLine($"{(isUpdated ? "更新済" : "スキップ")}");
+            if (_isDisposed) return;
+            _outputBuffer.Append($" 撮影日時：{(isUpdated ? "更新済" : "スキップ")}");
+            _output.WriteLine(_outputBuffer.ToString());
+            _outputBuffer.Clear();
         }
 
         /// <summary>
@@ -71,10 +94,64 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="message">エラーメッセージ</param>
         public void ShowError(string message)
         {
+            if (_isDisposed) return;
             if (string.IsNullOrEmpty(message))
                 throw new ArgumentNullException(nameof(message));
 
-            Console.Error.WriteLine($"エラー: {message}");
+            // バッファに出力があれば先に出力
+            if (_outputBuffer.Length > 0)
+            {
+                _output.WriteLine(_outputBuffer.ToString());
+                _outputBuffer.Clear();
+            }
+            
+            _errorOutput.WriteLine($"エラー: {message}");
+        }
+
+        /// <summary>
+        /// リソースを解放します。
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// リソースを解放します。
+        /// </summary>
+        /// <param name="disposing">マネージド リソースを解放する場合は true</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                if (disposing)
+                {
+                    // マネージド リソースを解放
+                    try
+                    {
+                        if (_outputBuffer.Length > 0)
+                        {
+                            _output.WriteLine(_outputBuffer.ToString());
+                            _outputBuffer.Clear();
+                        }
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // 出力が既に破棄されている場合は無視
+                    }
+                }
+
+                _isDisposed = true;
+            }
+        }
+
+        /// <summary>
+        /// ファイナライザー
+        /// </summary>
+        ~ProgressDisplay()
+        {
+            Dispose(false);
         }
     }
 }
