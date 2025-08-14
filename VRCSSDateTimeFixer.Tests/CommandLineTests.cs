@@ -1,9 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
-using System.IO;
-using VRCSSDateTimeFixer;
 using Xunit;
-using System.Linq;
 
 namespace VRCSSDateTimeFixer.Tests
 {
@@ -14,10 +11,10 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "C:\\path\\to\\file.png" };
-            
+
             // Act
             var parseResult = Program.BuildCommandLine().Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors);
             Assert.Equal("C:\\path\\to\\file.png", parseResult.GetValueForArgument(Program.PathArgument));
@@ -29,10 +26,10 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "C:\\path\\to\\directory", "-r" };
-            
+
             // Act
             var parseResult = Program.BuildCommandLine().Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors);
             Assert.Equal("C:\\path\\to\\directory", parseResult.GetValueForArgument(Program.PathArgument));
@@ -44,11 +41,11 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "--help" };
-            
+
             // Act
             var command = Program.BuildCommandLine();
             var parseResult = command.Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors);
             // ヘルプ表示がリクエストされたことを確認
@@ -60,11 +57,11 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = Array.Empty<string>();
-            
+
             // Act
             var command = Program.BuildCommandLine();
             var parseResult = command.Parse(args);
-            
+
             // Assert
             Assert.NotEmpty(parseResult.Errors);
             Assert.Contains("Required argument missing for command", parseResult.Errors[0].Message);
@@ -76,13 +73,13 @@ namespace VRCSSDateTimeFixer.Tests
             // Arrange
             string nonExistentFile = Path.Combine(Path.GetTempPath(), "nonexistent_file.png");
             string[] args = new[] { nonExistentFile };
-            
+
             // Act
             var parseResult = Program.BuildCommandLine().Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors); // パース時点ではエラーにならない
-            
+
             // 実際の処理時にエラーになることを確認するためのテストも可能
             // ここではパースのテストに留める
         }
@@ -92,11 +89,11 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "valid.png", "--invalid-option" };
-            
+
             // Act
             var command = Program.BuildCommandLine();
             var parseResult = command.Parse(args);
-            
+
             // Assert
             Assert.NotEmpty(parseResult.Errors);
             Assert.Contains("Unrecognized command or argument", parseResult.Errors[0].Message);
@@ -107,11 +104,11 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "C:\\path\\to\\directory" };
-            
+
             // Act
             var command = Program.BuildCommandLine();
             var parseResult = command.Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors);
             var recursiveOption = (Option<bool>)command.Options.First(o => o.Name == "recursive");
@@ -125,11 +122,11 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = new[] { "C:\\path\\to\\directory", option };
-            
+
             // Act
             var command = Program.BuildCommandLine();
             var parseResult = command.Parse(args);
-            
+
             // Assert
             Assert.Empty(parseResult.Errors);
             var recursiveOption = (Option<bool>)command.Options.First(o => o.Name == "recursive");
@@ -141,10 +138,10 @@ namespace VRCSSDateTimeFixer.Tests
         {
             // Arrange
             string[] args = Array.Empty<string>();
-            
+
             // Act
             var parseResult = Program.BuildCommandLine().Parse(args);
-            
+
             // Assert
             Assert.NotEmpty(parseResult.Errors);
             Assert.Contains(parseResult.Errors, e => e.Message.Contains("Required argument missing"));

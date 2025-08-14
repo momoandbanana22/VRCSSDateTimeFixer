@@ -1,8 +1,6 @@
 using System.CommandLine;
 using VRCSSDateTimeFixer.Services;
 using VRCSSDateTimeFixer.Validators;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace VRCSSDateTimeFixer
 {
@@ -29,7 +27,7 @@ namespace VRCSSDateTimeFixer
         public static RootCommand BuildCommandLine()
         {
             var rootCommand = new RootCommand("VRChatのスクリーンショットのファイル名から日時情報を抽出し、ファイルのタイムスタンプとExif情報を更新します。");
-            
+
             rootCommand.AddArgument(PathArgument);
             rootCommand.AddOption(RecursiveOption);
 
@@ -70,11 +68,11 @@ namespace VRCSSDateTimeFixer
             try
             {
                 _progressDisplay.StartProcessing(filePath);
-                
+
                 // ファイル名から日時を取得
                 string fileName = Path.GetFileName(filePath);
                 DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
-                
+
                 if (!dateTime.HasValue)
                 {
                     _progressDisplay.ShowError($"{filePath}: ファイル名から日時を抽出できません");
@@ -87,7 +85,7 @@ namespace VRCSSDateTimeFixer
                 var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(filePath);
                 _progressDisplay.ShowCreationTimeUpdateResult(creationTimeUpdated);
                 _progressDisplay.ShowLastWriteTimeUpdateResult(lastWriteTimeUpdated);
-                
+
                 // Exif情報を更新
                 bool exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
                 _progressDisplay.ShowExifUpdateResult(exifUpdated);
@@ -102,7 +100,7 @@ namespace VRCSSDateTimeFixer
         {
             var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
             var files = Directory.EnumerateFiles(directoryPath, "*.png", searchOption);
-            
+
             int processedCount = 0;
             int totalFiles = files.Count();
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();

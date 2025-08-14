@@ -104,7 +104,7 @@ namespace VRCSSDateTimeFixer.Services
                 _output.WriteLine(_outputBuffer.ToString());
                 _outputBuffer.Clear();
             }
-            
+
             _errorOutput.WriteLine($"エラー: {message}");
         }
 

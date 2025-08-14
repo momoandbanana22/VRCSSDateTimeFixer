@@ -1,12 +1,8 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
-using Xunit;
-using VRCSSDateTimeFixer.Services;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using Moq;
+using SixLabors.ImageSharp.PixelFormats;
+using VRCSSDateTimeFixer.Services;
+using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services
 {
@@ -21,7 +17,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // テスト用の一時的なPNGファイルを作成
             _testImagePath = Path.Combine(Path.GetTempPath(), "test_image.png");
             _tempImagePath = Path.GetTempFileName();
-            
+
             // テスト用の空の画像ファイルを作成
             using (var image = new Image<Rgba32>(100, 100))
             {
@@ -41,28 +37,28 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Arrange
             var updater = new ExifMetadataUpdater();
-            
+
             // Act
             var result = await updater.UpdateExifMetadataAsync(_testImagePath, _testDateTime);
-            
+
             // Assert
             Assert.True(result);
-            
+
             // EXIFデータを確認
             using (var image = await Image.LoadAsync(_testImagePath))
             {
                 var exifProfile = image.Metadata.ExifProfile;
                 Assert.NotNull(exifProfile);
-                
+
                 Assert.True(exifProfile.TryGetValue(ExifTag.DateTimeOriginal, out var dateTimeTag),
                     "DateTimeOriginal tag not found in EXIF data");
-                
+
                 var dateTimeValue = dateTimeTag?.GetValue() ??
                     throw new InvalidOperationException("DateTimeOriginal tag value is null");
-                
+
                 var dateTimeStr = dateTimeValue.ToString() ??
                     throw new InvalidOperationException("DateTimeOriginal string value is null or empty");
-                
+
                 Assert.Equal(_testDateTime.ToString("yyyy:MM:dd HH:mm:ss"), dateTimeStr);
             }
         }
@@ -73,10 +69,10 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Arrange
             var updater = new ExifMetadataUpdater();
             var invalidPath = Path.Combine(Path.GetTempPath(), "nonexistent_image.png");
-            
+
             // Act
             var result = await updater.UpdateExifMetadataAsync(invalidPath, _testDateTime);
-            
+
             // Assert
             Assert.False(result);
         }
@@ -87,12 +83,12 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Arrange
             var updater = new ExifMetadataUpdater();
             File.SetAttributes(_testImagePath, FileAttributes.ReadOnly);
-            
+
             try
             {
                 // Act
                 var result = await updater.UpdateExifMetadataAsync(_testImagePath, _testDateTime);
-                
+
                 // Assert
                 Assert.False(result);
             }

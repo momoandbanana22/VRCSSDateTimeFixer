@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-using System.Threading.Tasks;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 
@@ -27,18 +24,18 @@ namespace VRCSSDateTimeFixer.Services
                 {
                     // Ensure the image has metadata
                     image.Metadata.ExifProfile ??= new ExifProfile();
-                    
+
                     // Set the DateTimeOriginal tag
                     var dateTimeString = dateTime.ToString("yyyy:MM:dd HH:mm:ss");
                     image.Metadata.ExifProfile.SetValue(
                         ExifTag.DateTimeOriginal,
                         dateTimeString);
-                    
+
                     // Save the image with updated metadata
                     await using var output = File.Create(filePath);
-                    var format = image.Metadata.DecodedImageFormat ?? 
+                    var format = image.Metadata.DecodedImageFormat ??
                         throw new InvalidOperationException("画像フォーマットを特定できませんでした");
-                    
+
                     await image.SaveAsync(output, format);
                     return true;
                 }

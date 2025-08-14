@@ -1,8 +1,5 @@
-using System;
-using System.IO;
-using System.Text;
-using Xunit;
 using VRCSSDateTimeFixer.Services;
+using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services
 {
@@ -25,15 +22,15 @@ namespace VRCSSDateTimeFixer.Tests.Services
             _progressDisplay?.Dispose();
             _outputWriter?.Dispose();
             _errorWriter?.Dispose();
-            
+
             _outputWriter = new StringWriter();
             _errorWriter = new StringWriter();
             _originalOutput = Console.Out;
             _originalError = Console.Error;
-            
+
             Console.SetOut(_outputWriter);
             Console.SetError(_errorWriter);
-            
+
             _progressDisplay = new ProgressDisplay();
         }
 
@@ -70,7 +67,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Arrange
             string fileName = "VRChat_1920x1080_2022-08-31_21-54-39.227.png";
             var testDate = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            
+
             // Act
             _progressDisplay.StartProcessing(fileName);
             _progressDisplay.ShowExtractedDateTime(testDate);
@@ -90,7 +87,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Arrange
             var testDate = new DateTime(2023, 1, 1, 12, 0, 0);
             string fileName = "test.png";
-            
+
             // Act
             _progressDisplay.StartProcessing(fileName);
             _progressDisplay.ShowExtractedDateTime(testDate);
@@ -109,7 +106,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Arrange
             string errorMessage = "ファイルが存在しません";
-            
+
             // Act
             _progressDisplay.ShowError(errorMessage);
 
@@ -124,20 +121,20 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Arrange
             var testDate1 = new DateTime(2022, 8, 31, 21, 54, 39, 227);
             var testDate2 = new DateTime(2022, 9, 1, 12, 34, 56, 789);
-            
+
             // Act
             _progressDisplay.StartProcessing("test1.png");
             _progressDisplay.ShowExtractedDateTime(testDate1);
             _progressDisplay.ShowCreationTimeUpdateResult(true);
             _progressDisplay.ShowLastWriteTimeUpdateResult(true);
             _progressDisplay.ShowExifUpdateResult(true);
-            
+
             _progressDisplay.StartProcessing("test2.png");
             _progressDisplay.ShowExtractedDateTime(testDate2);
             _progressDisplay.ShowCreationTimeUpdateResult(true);
             _progressDisplay.ShowLastWriteTimeUpdateResult(true);
             _progressDisplay.ShowExifUpdateResult(true);
-            
+
             // Assert
             var output = _outputWriter.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(2, output.Length);
