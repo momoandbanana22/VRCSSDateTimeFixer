@@ -3,7 +3,6 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
-using System.Threading.Tasks;
 
 namespace VRCSSDateTimeFixer.Tests
 {

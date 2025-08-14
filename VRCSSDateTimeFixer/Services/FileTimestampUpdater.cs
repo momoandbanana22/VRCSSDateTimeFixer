@@ -1,7 +1,6 @@
 using System.Globalization;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using System.Threading.Tasks;
 using VRCSSDateTimeFixer.Validators;
 
 namespace VRCSSDateTimeFixer
@@ -86,7 +85,7 @@ namespace VRCSSDateTimeFixer
                     {
                         // エラーログを出力
                         System.Diagnostics.Debug.WriteLine($"[FileTimestampUpdater] タイムスタンプの更新に失敗: {ex.GetType().Name} - {ex.Message}");
-                        
+
                         // リトライロジック
                         try
                         {
@@ -96,7 +95,7 @@ namespace VRCSSDateTimeFixer
                             // ファイル属性を取得
                             var attributes = File.GetAttributes(filePath);
                             bool isReadOnly = (attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly;
-                            
+
                             try
                             {
                                 // 読み取り専用属性を削除

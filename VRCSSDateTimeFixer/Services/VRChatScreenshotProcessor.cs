@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using VRCSSDateTimeFixer.Validators;
 
 namespace VRCSSDateTimeFixer.Services
@@ -40,13 +37,13 @@ namespace VRCSSDateTimeFixer.Services
                 dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
                 if (!dateTime.HasValue)
                 {
-                    return ProcessResult.Failure(fileName, 
+                    return ProcessResult.Failure(fileName,
                         string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
                 }
             }
             catch (ArgumentException ex) when (ex.ParamName == "fileName")
             {
-                return ProcessResult.Failure(fileName, 
+                return ProcessResult.Failure(fileName,
                     string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
             }
 
@@ -128,7 +125,7 @@ namespace VRCSSDateTimeFixer.Services
         public bool ExifUpdated { get; private set; }
         public string ErrorMessage { get; private set; }
 
-        private ProcessResult(bool success, string fileName, string message, DateTime? extractedDateTime, 
+        private ProcessResult(bool success, string fileName, string message, DateTime? extractedDateTime,
                            bool creationTimeUpdated, bool lastWriteTimeUpdated, bool exifUpdated, string? errorMessage = null)
         {
             Success = success;
@@ -141,21 +138,21 @@ namespace VRCSSDateTimeFixer.Services
             ErrorMessage = errorMessage ?? string.Empty;
         }
 
-        public static ProcessResult CreateSuccess(string fileName, DateTime dateTime, 
+        public static ProcessResult CreateSuccess(string fileName, DateTime dateTime,
             bool creationTimeUpdated, bool lastWriteTimeUpdated, bool exifUpdated)
         {
             string dateTimeStr = dateTime.ToString("yyyy年MM月dd日 HH時mm分ss.fff");
             string message = $"{fileName}：{dateTimeStr} 作成日時：{(creationTimeUpdated ? "更新済" : "スキップ")} " +
                            $"更新日時：{(lastWriteTimeUpdated ? "更新済" : "スキップ")} " +
                            $"撮影日時：{(exifUpdated ? "更新済" : "スキップ")}";
-            
-            return new ProcessResult(true, fileName, message, dateTime, 
+
+            return new ProcessResult(true, fileName, message, dateTime,
                 creationTimeUpdated, lastWriteTimeUpdated, exifUpdated);
         }
 
         public static ProcessResult Failure(string fileName, string errorMessage)
         {
-            return new ProcessResult(false, fileName, $"{fileName}: {errorMessage}", 
+            return new ProcessResult(false, fileName, $"{fileName}: {errorMessage}",
                 null, false, false, false, errorMessage);
         }
 

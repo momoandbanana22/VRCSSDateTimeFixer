@@ -1,7 +1,4 @@
-using System;
-using System.IO;
 using VRCSSDateTimeFixer.Services;
-using VRCSSDateTimeFixer.Validators;
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services
@@ -12,7 +9,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         private const string TestFileName = "VRChat_1920x1080_2022-08-31_21-54-39.227.png";
         private const string NonExistentFileName = "nonexistent_file.png";
         private static readonly DateTime ExpectedTestFileDate = new(2022, 8, 31, 21, 54, 39, 227);
-        
+
         private readonly string _testDir;
         private readonly string _testFilePath;
         private readonly string _nonExistentFile;
@@ -22,10 +19,10 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             _testDir = Path.Combine(Path.GetTempPath(), "VRChatScreenshotProcessorTests");
             Directory.CreateDirectory(_testDir);
-            
+
             _testFilePath = Path.Combine(_testDir, TestFileName);
             File.WriteAllText(_testFilePath, "test");
-            
+
             _nonExistentFile = Path.Combine(_testDir, NonExistentFileName);
         }
 
@@ -67,19 +64,19 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // テスト用の一時ディレクトリを作成
             string testDir = Path.Combine(Path.GetTempPath(), "VRChatScreenshotTests");
             Directory.CreateDirectory(testDir);
-            
+
             try
             {
                 // テスト用のファイルパスを設定
                 string testImageFile = Path.Combine(testDir, TestFileName);
-                
+
                 // 既存のファイルがあれば削除
                 if (File.Exists(testImageFile))
                 {
                     File.SetAttributes(testImageFile, FileAttributes.Normal);
                     File.Delete(testImageFile);
                 }
-                
+
                 // テスト用のPNGファイルを直接作成
                 using (var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(100, 100))
                 using (var stream = File.Create(testImageFile))
@@ -98,32 +95,32 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     }
                     image.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
                 }
-                
+
                 // ファイルが存在することを確認
                 Assert.True(File.Exists(testImageFile), "テストファイルが作成されていません");
-                
+
                 // When: 処理を実行
                 var result = await VRChatScreenshotProcessor.ProcessFileAsync(testImageFile);
-                
+
                 // Then: 成功結果が返り、タイムスタンプとExifが更新されること
                 string expectedMessageStart = $"{Path.GetFileName(TestFileName)}：{ExpectedTestFileDate:yyyy年MM月dd日 HH時mm分ss.fff}";
-                
+
                 Assert.True(result.Success, $"Expected success but got: {result.Message}");
                 Assert.StartsWith(expectedMessageStart, result.Message);
-                
+
                 // 少なくとも1つのタイムスタンプが更新されていることを確認
-                Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated, 
+                Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated,
                     "Expected at least one timestamp (CreationTime or LastWriteTime) to be updated");
-                
+
                 // EXIFが更新されていることを確認
                 Assert.True(result.ExifUpdated, "Expected EXIF to be updated");
-                
+
                 // 抽出された日時が正しいことを確認
                 Assert.Equal(ExpectedTestFileDate, result.ExtractedDateTime);
-                
+
                 // ファイルのタイムスタンプが更新されていることを確認
                 var fileInfo = new FileInfo(testImageFile);
-                
+
                 // タイムスタンプの比較では日付部分のみを比較（時刻は処理時間によってずれる可能性があるため）
                 Assert.Equal(ExpectedTestFileDate.Date, fileInfo.CreationTime.Date);
                 Assert.Equal(ExpectedTestFileDate.Date, fileInfo.LastWriteTime.Date);
@@ -131,8 +128,8 @@ namespace VRCSSDateTimeFixer.Tests.Services
             finally
             {
                 // クリーンアップ: テストディレクトリを削除
-                try 
-                { 
+                try
+                {
                     if (Directory.Exists(testDir))
                     {
                         // ディレクトリ内のすべてのファイルを削除
@@ -147,7 +144,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                         }
                         Directory.Delete(testDir);
                     }
-                } 
+                }
                 catch { /* エラーは無視 */ }
             }
         }
@@ -175,9 +172,9 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // テスト用の一時ディレクトリを作成
             string testDir = Path.Combine(Path.GetTempPath(), "VRChatScreenshotTests_ReadOnly");
             Directory.CreateDirectory(testDir);
-            
+
             string testImageFile = Path.Combine(testDir, TestFileName);
-            
+
             try
             {
                 // 既存のファイルがあれば削除
@@ -186,7 +183,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     File.SetAttributes(testImageFile, FileAttributes.Normal);
                     File.Delete(testImageFile);
                 }
-                
+
                 // テスト用のPNGファイルを作成
                 using (var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(100, 100))
                 using (var stream = File.Create(testImageFile))
@@ -205,22 +202,22 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     }
                     image.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
                 }
-                
+
                 // ファイルを読み取り専用に設定
                 File.SetAttributes(testImageFile, FileAttributes.ReadOnly);
-                
+
                 // ファイルが読み取り専用になっていることを確認
                 var attributes = File.GetAttributes(testImageFile);
-                Assert.True((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly, 
+                Assert.True((attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly,
                     "ファイルが読み取り専用に設定されていません");
-                
+
                 // When: 処理を実行
                 var result = await VRChatScreenshotProcessor.ProcessFileAsync(testImageFile);
-                
+
                 // Then: 失敗結果が返り、適切なエラーメッセージが含まれること
                 // 実際のエラーメッセージの形式に合わせる（ファイル名が2回含まれる）
                 string expectedMessage = $"{Path.GetFileName(testImageFile)}:{Path.GetFileName(testImageFile)}:読み取り専用ファイルのためスキップします";
-                
+
                 AssertProcessResult(
                     result: result,
                     expectedSuccess: false,
@@ -229,14 +226,14 @@ namespace VRCSSDateTimeFixer.Tests.Services
             finally
             {
                 // クリーンアップ
-                try 
-                { 
+                try
+                {
                     // ファイル属性を元に戻す
                     if (File.Exists(testImageFile))
                     {
                         File.SetAttributes(testImageFile, FileAttributes.Normal);
                     }
-                    
+
                     // ディレクトリを削除
                     if (Directory.Exists(testDir))
                     {
@@ -252,7 +249,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                         }
                         Directory.Delete(testDir);
                     }
-                } 
+                }
                 catch { /* エラーは無視 */ }
             }
         }
@@ -268,8 +265,8 @@ namespace VRCSSDateTimeFixer.Tests.Services
         public void 不正なファイルパスを指定した場合_失敗結果を返すこと(string? filePath, string expectedErrorMessage)
         {
             // Given: 不正なファイルパス
-            var targetPath = filePath == "nonexistent_file.png" 
-                ? _nonExistentFile 
+            var targetPath = filePath == "nonexistent_file.png"
+                ? _nonExistentFile
                 : filePath;
 
             // When: 処理を実行
@@ -308,17 +305,17 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Use the exact test file name without GUID to ensure date extraction works
             string tempFile = Path.Combine(Path.GetTempPath(), TestFileName);
-            
+
             // Create directory if it doesn't exist
             Directory.CreateDirectory(Path.GetDirectoryName(tempFile) ?? string.Empty);
-            
+
             // If file exists, delete it first to avoid conflicts
             if (File.Exists(tempFile))
             {
                 File.SetAttributes(tempFile, FileAttributes.Normal);
                 File.Delete(tempFile);
             }
-            
+
             // Create a simple PNG image
             using (var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(100, 100))
             using (var stream = File.Create(tempFile))
@@ -337,7 +334,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                 }
                 image.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
             }
-            
+
             _tempFiles.Add(tempFile);
             return tempFile;
         }
@@ -367,7 +364,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     {
                         File.SetAttributes(targetFile, attributes & ~FileAttributes.ReadOnly);
                     }
-                    
+
                     // ファイルを削除
                     File.Delete(targetFile);
                 }
@@ -405,7 +402,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     // コピーに失敗した場合は少し待ってからリトライ
                     Thread.Sleep(100);
                     attempts++;
-                    
+
                     // 新しいファイル名を生成
                     string directory = Path.GetDirectoryName(targetFile) ?? string.Empty;
                     string fileNameWithoutExt = Path.GetFileNameWithoutExtension(TestFileName);
@@ -421,7 +418,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
 
             // テスト終了時に削除するためリストに追加
             _tempFiles.Add(targetFile);
-            
+
             // 元のファイルを削除（失敗しても無視）
             try
             {
@@ -448,7 +445,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             Assert.NotNull(result);
             Assert.Equal(expectedSuccess, result.Success);
-            
+
             if (expectedMessage != null)
             {
                 // ファイル名の後ろにGUIDが付いている可能性があるため、ファイル名の先頭部分が含まれているか確認
@@ -457,16 +454,16 @@ namespace VRCSSDateTimeFixer.Tests.Services
                     // 期待メッセージと実際のメッセージの区切り文字を正規化（全角/半角を統一）
                     string normalizedExpected = expectedMessage.Replace("：", ":").Replace(": ", ":");
                     string normalizedActual = result.Message.Replace("：", ":").Replace(": ", ":");
-                    
+
                     // ファイル名部分を抽出（GUIDの有無を考慮）
                     string[] expectedParts = normalizedExpected.Split(':');
                     string[] actualParts = normalizedActual.Split(':');
-                    
+
                     // ファイル名部分が一致することを確認（GUIDは無視）
                     string expectedFileName = Path.GetFileNameWithoutExtension(expectedParts[0]);
                     string actualFileName = Path.GetFileNameWithoutExtension(actualParts[0]);
                     Assert.StartsWith(expectedFileName, actualFileName);
-                    
+
                     // メッセージの残りの部分も含まれているか確認
                     if (expectedParts.Length > 1 && actualParts.Length > 1)
                     {
@@ -497,7 +494,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                 Assert.True(result.Success);
                 if (expectedTimestampUpdated.Value)
                 {
-                    Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated, 
+                    Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated,
                         "Expected timestamp to be updated, but it was not.");
                 }
             }
@@ -560,11 +557,11 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            
+
             // Act
             _progressDisplay.StartProcessing("test.png");
             _progressDisplay.ShowExtractedDateTime(dateTime);
-            
+
             // Assert
             var output = _output.ToString();
             Assert.Equal("test.png:2022年08月31日 21時54分39.227", output.Trim());
@@ -575,14 +572,14 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            
+
             // Act
             _progressDisplay.StartProcessing("test.png");
             _progressDisplay.ShowExtractedDateTime(dateTime);
             _progressDisplay.ShowCreationTimeUpdateResult(true);
             _progressDisplay.ShowLastWriteTimeUpdateResult(false);
             _progressDisplay.ShowExifUpdateResult(true);
-            
+
             // Assert
             var output = _output.ToString();
             var expected = "test.png:2022年08月31日 21時54分39.227 作成日時：更新済 更新日時：スキップ 撮影日時：更新済";
@@ -594,7 +591,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Act
             _progressDisplay.ShowError("エラーメッセージ");
-            
+
             // Assert
             var errorOutput = _errorOutput.ToString();
             Assert.Equal("エラー: エラーメッセージ" + Environment.NewLine, errorOutput);
@@ -604,13 +601,16 @@ namespace VRCSSDateTimeFixer.Tests.Services
         public void ShowExifUpdateResult_AddsNewLine()
         {
             // Act
+            var testDate = new DateTime(2022, 8, 31, 21, 54, 39, 227);
             _progressDisplay.StartProcessing("test.png");
+            _progressDisplay.ShowExtractedDateTime(testDate);
             _progressDisplay.ShowExifUpdateResult(true);
             _progressDisplay.StartProcessing("test2.png");
             
             // Assert
             var output = _output.ToString();
-            Assert.Equal("test.png 撮影日時：更新済" + Environment.NewLine + "test2.png", output);
+            var expected = "test.png:2022年08月31日 21時54分39.227 撮影日時：更新済" + Environment.NewLine + "test2.png";
+            Assert.Equal(expected, output);
         }
     }
 }
