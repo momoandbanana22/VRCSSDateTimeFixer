@@ -54,7 +54,7 @@ namespace VRCSSDateTimeFixer.Validators
             -                           # 区切り文字
             (?<second>\d{2})           # 秒（2桁）
             \.(?<millisecond>\d{3})    # ミリ秒（3桁）
-            \.png$                      # 拡張子";
+            \.(?:png|jpe?g)$           # 拡張子（.png, .jpg, .jpeg をサポート）";
 
         /// <summary>
         /// 形式1のファイル名を検証するための正規表現オブジェクト
@@ -75,7 +75,7 @@ namespace VRCSSDateTimeFixer.Validators
         /// 形式: VRChat_YYYY-MM-DD_HH-mm-ss.fff_幅x高さ.png
         /// 例: VRChat_2022-08-31_21-54-39.227_1920x1080.png
         /// 
-        /// グループ名:
+        /// グループ名：
         /// - year: 年 (YYYY)
         /// - month: 月 (MM)
         /// - day: 日 (DD)
@@ -86,7 +86,7 @@ namespace VRCSSDateTimeFixer.Validators
         /// - width: 幅
         /// - height: 高さ
         /// 
-        /// オプション:
+        /// オプション：
         /// - IgnorePatternWhitespace: パターン内の空白を無視（コメント用）
         /// - IgnoreCase: 大文字小文字を区別しない
         /// - Compiled: 正規表現をコンパイルして高速化
@@ -96,7 +96,7 @@ namespace VRCSSDateTimeFixer.Validators
     (?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})_  # 日付 (YYYY-MM-DD_)
     (?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})\.(?<millisecond>\d{3})_  # 時刻 (HH-mm-ss.fff_)
     (?<width>\d{1,5})x(?<height>\d{1,5})     # 解像度 (幅x高さ)
-    \.png$                                   # 拡張子
+    \.(?:png|jpe?g)$                        # 拡張子（.png, .jpg, .jpeg をサポート）
 ";
 
         private static readonly Regex Format2Regex = new(

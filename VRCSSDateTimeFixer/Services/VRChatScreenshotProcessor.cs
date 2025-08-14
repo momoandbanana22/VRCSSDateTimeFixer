@@ -16,7 +16,9 @@ namespace VRCSSDateTimeFixer.Services
     {
         private static readonly HashSet<string> SupportedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
-            ".png"
+            ".png",
+            ".jpg",
+            ".jpeg"
         };
 
         public static async Task<ProcessResult> ProcessFileAsync(string filePath)

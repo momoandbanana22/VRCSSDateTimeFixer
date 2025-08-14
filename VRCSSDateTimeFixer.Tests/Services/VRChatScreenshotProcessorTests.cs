@@ -58,6 +58,102 @@ namespace VRCSSDateTimeFixer.Tests.Services
 
         #region 正常系テスト
 
+        [Theory]
+        [InlineData("VRChat_1920x1080_2022-08-31_21-54-39.227.jpg")]
+        [InlineData("VRChat_1920x1080_2022-08-31_21-54-39.227.jpeg")]
+        [InlineData("VRChat_1920x1080_2022-08-31_21-54-39.227.png")]
+        public async Task ProcessFileAsync_サポートされている画像形式を処理できること(string testFileName)
+        {
+            // テスト用の一時ディレクトリを作成
+            string testDir = Path.Combine(Path.GetTempPath(), "VRChatScreenshotTests");
+            Directory.CreateDirectory(testDir);
+
+            try
+            {
+                // テスト用のファイルパスを設定
+                string testImageFile = Path.Combine(testDir, testFileName);
+
+                // 既存のファイルがあれば削除
+                if (File.Exists(testImageFile))
+                {
+                    File.SetAttributes(testImageFile, FileAttributes.Normal);
+                    File.Delete(testImageFile);
+                }
+
+                // テスト用の画像ファイルを作成
+                using (var image = new SixLabors.ImageSharp.Image<SixLabors.ImageSharp.PixelFormats.Rgba32>(100, 100))
+                using (var stream = File.Create(testImageFile))
+                {
+                    // シンプルな画像データを作成
+                    for (int y = 0; y < 100; y++)
+                    {
+                        for (int x = 0; x < 100; x++)
+                        {
+                            image[x, y] = new SixLabors.ImageSharp.PixelFormats.Rgba32(
+                                (byte)(x * 255 / 100),
+                                (byte)(y * 255 / 100),
+                                128,
+                                255);
+                        }
+                    }
+                    
+                    // 拡張子に応じて適切なエンコーダーを選択
+                    var extension = Path.GetExtension(testImageFile).ToLowerInvariant();
+                    if (extension == ".jpg" || extension == ".jpeg")
+                    {
+                        image.Save(stream, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder());
+                    }
+                    else // .png
+                    {
+                        image.Save(stream, new SixLabors.ImageSharp.Formats.Png.PngEncoder());
+                    }
+                }
+
+                // ファイルが存在することを確認
+                Assert.True(File.Exists(testImageFile), $"テストファイルが作成されていません: {testFileName}");
+
+                // When: 処理を実行
+                var result = await VRChatScreenshotProcessor.ProcessFileAsync(testImageFile);
+
+                // Then: 成功結果が返り、タイムスタンプが更新されること
+                string expectedMessageStart = $"{Path.GetFileName(testFileName)}：{ExpectedTestFileDate:yyyy年MM月dd日 HH時mm分ss.fff}";
+
+                Assert.True(result.Success, $"Expected success but got: {result.Message}");
+                Assert.StartsWith(expectedMessageStart, result.Message);
+
+                // 少なくとも1つのタイムスタンプが更新されていることを確認
+                Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated,
+                    "Expected at least one timestamp (CreationTime or LastWriteTime) to be updated");
+
+                // ファイルのタイムスタンプが更新されていることを確認
+                var fileInfo = new FileInfo(testImageFile);
+                Assert.Equal(ExpectedTestFileDate.Date, fileInfo.CreationTime.Date);
+                Assert.Equal(ExpectedTestFileDate.Date, fileInfo.LastWriteTime.Date);
+            }
+            finally
+            {
+                // クリーンアップ: テストディレクトリを削除
+                try
+                {
+                    if (Directory.Exists(testDir))
+                    {
+                        // ディレクトリ内のすべてのファイルを削除
+                        foreach (var file in Directory.GetFiles(testDir))
+                        {
+                            try
+                            {
+                                File.SetAttributes(file, FileAttributes.Normal);
+                                File.Delete(file);
+                            }
+                            catch { /* 削除に失敗しても無視 */ }
+                        }
+                        Directory.Delete(testDir);
+                    }
+                }
+                catch { /* エラーは無視 */ }
+            }
+        }
+
         [Fact]
         public async Task ProcessFileAsync_有効なPNGファイルを処理できること()
         {
