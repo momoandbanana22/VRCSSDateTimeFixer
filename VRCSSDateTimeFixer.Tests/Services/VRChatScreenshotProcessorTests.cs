@@ -514,16 +514,24 @@ namespace VRCSSDateTimeFixer.Tests.Services
     public class ProgressDisplayTests : IDisposable
     {
         private readonly StringWriter _output;
+        private readonly StringWriter _errorOutput;
         private readonly TextWriter _originalOutput;
+        private readonly TextWriter _originalErrorOutput;
         private readonly string _testDir;
         private readonly string _testFilePath;
+        private readonly ProgressDisplay _progressDisplay;
 
         public ProgressDisplayTests()
         {
             // テスト用の出力をリダイレクト
             _output = new StringWriter();
+            _errorOutput = new StringWriter();
             _originalOutput = Console.Out;
+            _originalErrorOutput = Console.Error;
             Console.SetOut(_output);
+            Console.SetError(_errorOutput);
+
+            _progressDisplay = new ProgressDisplay();
 
             // テスト用の一時ファイルを作成
             _testDir = Path.Combine(Path.GetTempPath(), "ProgressDisplayTests");
@@ -536,7 +544,9 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // 出力を元に戻す
             Console.SetOut(_originalOutput);
+            Console.SetError(_originalErrorOutput);
             _output.Dispose();
+            _errorOutput.Dispose();
 
             // テストファイルを削除
             if (Directory.Exists(_testDir))
@@ -546,66 +556,61 @@ namespace VRCSSDateTimeFixer.Tests.Services
         }
 
         [Fact]
-        public void DisplayProgress_ValidFile_ShowsCorrectFormat()
+        public void ShowExtractedDateTime_DisplaysCorrectFormat()
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            var result = ProcessResult.CreateSuccess(
-                fileName: "test.png",
-                dateTime: dateTime,
-                creationTimeUpdated: true,
-                lastWriteTimeUpdated: true,
-                exifUpdated: true
-            );
-
+            
             // Act
-            VRChatScreenshotProcessor.DisplayProgress(result);
-
+            _progressDisplay.StartProcessing("test.png");
+            _progressDisplay.ShowExtractedDateTime(dateTime);
+            
             // Assert
             var output = _output.ToString();
-            Assert.Contains("test.png", output);
-            Assert.Contains("2022年08月31日 21時54分39.227秒", output);
-            Assert.Contains("作成日時：更新済", output);
-            Assert.Contains("更新日時：更新済", output);
-            Assert.Contains("撮影日時：更新済", output);
+            Assert.Equal("test.png:2022年08月31日 21時54分39.227", output.Trim());
         }
 
         [Fact]
-        public void DisplayProgress_NoUpdates_ShowsNotUpdated()
+        public void ShowUpdateResults_DisplaysAllUpdateStatuses()
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            var result = ProcessResult.CreateSuccess(
-                fileName: "test.png",
-                dateTime: dateTime,
-                creationTimeUpdated: false,
-                lastWriteTimeUpdated: false,
-                exifUpdated: false
-            );
-
+            
             // Act
-            VRChatScreenshotProcessor.DisplayProgress(result);
-
+            _progressDisplay.StartProcessing("test.png");
+            _progressDisplay.ShowExtractedDateTime(dateTime);
+            _progressDisplay.ShowCreationTimeUpdateResult(true);
+            _progressDisplay.ShowLastWriteTimeUpdateResult(false);
+            _progressDisplay.ShowExifUpdateResult(true);
+            
             // Assert
             var output = _output.ToString();
-            Assert.Contains("作成日時：更新不要", output);
-            Assert.Contains("更新日時：更新不要", output);
-            Assert.Contains("撮影日時：更新不要", output);
+            var expected = "test.png:2022年08月31日 21時54分39.227 作成日時：更新済 更新日時：スキップ 撮影日時：更新済";
+            Assert.Equal(expected, output.Trim());
         }
 
         [Fact]
-        public void DisplayProgress_ErrorCase_ShowsErrorMessage()
+        public void ShowError_DisplaysErrorMessageToErrorOutput()
         {
-            // Arrange
-            var result = ProcessResult.Failure("test.png", "エラーが発生しました");
-
             // Act
-            VRChatScreenshotProcessor.DisplayProgress(result);
+            _progressDisplay.ShowError("エラーメッセージ");
+            
+            // Assert
+            var errorOutput = _errorOutput.ToString();
+            Assert.Equal("エラー: エラーメッセージ" + Environment.NewLine, errorOutput);
+        }
 
+        [Fact]
+        public void ShowExifUpdateResult_AddsNewLine()
+        {
+            // Act
+            _progressDisplay.StartProcessing("test.png");
+            _progressDisplay.ShowExifUpdateResult(true);
+            _progressDisplay.StartProcessing("test2.png");
+            
             // Assert
             var output = _output.ToString();
-            Assert.Contains("test.png", output);
-            Assert.Contains("エラーが発生しました", output);
+            Assert.Equal("test.png 撮影日時：更新済" + Environment.NewLine + "test2.png", output);
         }
     }
 }

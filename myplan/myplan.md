@@ -25,7 +25,8 @@
 - VRChatスクリーンショットのファイル名フォーマット例:
   - フォーマット1: VRChat_1080x1920_2022-08-31_21-54-39.227.png（1080x1920, 1920x1080 など縦横どちらもあり得る）
   - フォーマット2: VRChat_2022-10-14_23-44-13.389_7680x4320.png
-- ファイル名判定・抽出時は "VRChat"・"x"・"png" などの大文字小文字を区別しないことをテストリストに追加
+- ファイル名判定・抽出時は "VRChat"・"x"・"png" などの大文字小文字を区別しないこと
+- 例外: ファイル名のフォーマットが期待通りでない場合は、何もしないこと
 - 解像度はユーザー設定に依存し、1～99999の整数値が縦横どちらにも入るため、縦横の組み合わせチェックは不要（両方が範囲内かのみ検証）
 
 ## Notes
@@ -40,45 +41,6 @@
 - Main project uses .NET 8.0, explicit Program class, and initial code is standard template ("Hello, World!").
 - Next step: Add and configure xUnit test project (VRChatDateTimeFixer.Tests) targeting .NET 8.0 and referencing the main project.
 - xUnit test project (VRChatDateTimeFixer.Tests) has been added, builds, and tests pass (green).
-- User provided an initial TDD test list for review:
-  - 判定: ファイル名のフォーマットを判定できること
-  - 取得1: ファイル名から日時取得１（フォーマット１）できること
-  - 取得2: ファイル名から日時取得２（フォーマット２）できること
-  - 作成日時: 指定されたファイルの作成日時を指定された日時に変更できること
-  - 更新日時: 指定されたファイルの更新日時を指定された日時に変更できること
-  - 撮影日時: 指定されたファイルの撮影日時を指定された日時に変更できること
-  - 例外: ファイル名のフォーマットが期待通りでない場合は、何もしないこと
-- Plan to include edge case tests:
-  - ファイル名に特殊文字が含まれる場合
-  - ファイル名が非常に長い場合
-  - ファイルが存在しない場合の処理
-  - 読み取り専用ファイルを処理する場合
-  - 書き込み権限がない場合のエラーハンドリング
-  - 日時の境界値（うるう秒・うるう年・夏時間切替）
-- TDDテストケースの優先順位:
-  - 最重要（MVP）: ファイル名フォーマット検証（大文字小文字/解像度/日時）、日時抽出・設定（作成/更新/撮影）、異なる日時形式
-  - 高優先度: エラーハンドリング（不正名/存在しない/読取専用ファイル）
-  - 中優先度: パフォーマンス（大量ファイル/メモリ）
-  - 低優先度: 特殊環境（ネットワークドライブ/異ファイルシステム）
-  - 検討事項: バックアップ、並列処理、進捗表示
 - テストコードはGiven-When-Then（GWT）形式で記述すること
 - テストコメントは日本語で記述すること
 - TDDサイクル（Red→Green→Refactor）を厳守すること
-- コミットメッセージのprefix（test:, feat:, refactor:など）は内容に応じて一貫性を持って選ぶこと。特にテスト追加時はtest:を推奨。
-- 過去のコミットメッセージも内容に応じて適切なprefixで一貫性を持って修正すること。ただし、修正時は1行目のprefixのみ変更し、2行目以降の本文や詳細説明は絶対に変更しないこと。
-- 撮影日時（Exif/PNGメタデータ）もTDDサイクルで実装予定（ユーザー要望により追加）
-
-## Task List
-- [x] Decide on project structure and naming
-- [x] Decide on .NET version and test framework
-- [x] Create solution and projects in Visual Studio
-- [x] Review created project contents
-- [x] Add and configure xUnit test project
-- [x] Generate .gitignore file
-- [x] Make initial git commit
-- [x] Review and refine initial TDD test list
-- [x] Add and refine edge case tests to TDD plan
-- [x] Add and refine case-insensitive matching tests to TDD plan
-- [x] Begin first TDD test implementation
-- [x] テストコードをGWT形式・日本語コメントにリファクタ
-- [x] 日時抽出機能の実装が完了したことを確認

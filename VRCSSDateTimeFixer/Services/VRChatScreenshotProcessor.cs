@@ -34,8 +34,17 @@ namespace VRCSSDateTimeFixer.Services
             }
 
             // ファイル名から日時を抽出
-            DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
-            if (!dateTime.HasValue)
+            DateTime? dateTime;
+            try
+            {
+                dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
+                if (!dateTime.HasValue)
+                {
+                    return ProcessResult.Failure(fileName, 
+                        string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
+                }
+            }
+            catch (ArgumentException ex) when (ex.ParamName == "fileName")
             {
                 return ProcessResult.Failure(fileName, 
                     string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
@@ -57,7 +66,12 @@ namespace VRCSSDateTimeFixer.Services
             result.SetLastWriteTimeUpdated(timestampResult.LastWriteTimeUpdated);
 
             // 進捗を表示
-            DisplayProgress(result);
+            var progressDisplay = new ProgressDisplay();
+            progressDisplay.StartProcessing(result.FileName);
+            progressDisplay.ShowExtractedDateTime(result.ExtractedDateTime.Value);
+            progressDisplay.ShowCreationTimeUpdateResult(result.CreationTimeUpdated);
+            progressDisplay.ShowLastWriteTimeUpdateResult(result.LastWriteTimeUpdated);
+            progressDisplay.ShowExifUpdateResult(result.ExifUpdated);
 
             return result;
         }
@@ -100,33 +114,7 @@ namespace VRCSSDateTimeFixer.Services
             return SupportedExtensions.Contains(extension);
         }
 
-        /// <summary>
-        /// 処理結果をコンソールに表示します。
-        /// </summary>
-        /// <param name="result">処理結果</param>
-        public static void DisplayProgress(ProcessResult result)
-        {
-            if (result == null)
-            {
-                Console.WriteLine("エラー: 結果がnullです");
-                return;
-            }
-
-            if (!result.Success)
-            {
-                Console.WriteLine($"{result.FileName}: {result.ErrorMessage}");
-                return;
-            }
-
-            var output = new System.Text.StringBuilder();
-            output.Append($"{result.FileName}: {result.ExtractedDateTime:yyyy年MM月dd日 HH時mm分ss.fff秒}");
-
-            output.Append(result.CreationTimeUpdated ? " 作成日時：更新済" : " 作成日時：更新不要");
-            output.Append(result.LastWriteTimeUpdated ? " 更新日時：更新済" : " 更新日時：更新不要");
-            output.Append(result.ExifUpdated ? " 撮影日時：更新済" : " 撮影日時：更新不要");
-
-            Console.WriteLine(output.ToString());
-        }
+        // DisplayProgress メソッドは削除し、ProgressDisplay クラスを使用する
     }
 
     public class ProcessResult
