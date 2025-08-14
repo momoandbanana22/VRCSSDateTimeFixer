@@ -56,6 +56,9 @@ namespace VRCSSDateTimeFixer.Services
             result.SetCreationTimeUpdated(timestampResult.CreationTimeUpdated);
             result.SetLastWriteTimeUpdated(timestampResult.LastWriteTimeUpdated);
 
+            // 進捗を表示
+            DisplayProgress(result);
+
             return result;
         }
 
@@ -95,6 +98,34 @@ namespace VRCSSDateTimeFixer.Services
         {
             string extension = Path.GetExtension(filePath);
             return SupportedExtensions.Contains(extension);
+        }
+
+        /// <summary>
+        /// 処理結果をコンソールに表示します。
+        /// </summary>
+        /// <param name="result">処理結果</param>
+        public static void DisplayProgress(ProcessResult result)
+        {
+            if (result == null)
+            {
+                Console.WriteLine("エラー: 結果がnullです");
+                return;
+            }
+
+            if (!result.Success)
+            {
+                Console.WriteLine($"{result.FileName}: {result.ErrorMessage}");
+                return;
+            }
+
+            var output = new System.Text.StringBuilder();
+            output.Append($"{result.FileName}: {result.ExtractedDateTime:yyyy年MM月dd日 HH時mm分ss.fff秒}");
+
+            output.Append(result.CreationTimeUpdated ? " 作成日時：更新済" : " 作成日時：更新不要");
+            output.Append(result.LastWriteTimeUpdated ? " 更新日時：更新済" : " 更新日時：更新不要");
+            output.Append(result.ExifUpdated ? " 撮影日時：更新済" : " 撮影日時：更新不要");
+
+            Console.WriteLine(output.ToString());
         }
     }
 

@@ -102,46 +102,29 @@ namespace VRCSSDateTimeFixer.Tests.Services
                 // ファイルが存在することを確認
                 Assert.True(File.Exists(testImageFile), "テストファイルが作成されていません");
                 
-                // テスト前のファイル情報をログ出力
-                var beforeFileInfo = new FileInfo(testImageFile);
-                Console.WriteLine($"[Test] Before - CreationTime: {beforeFileInfo.CreationTime}, LastWriteTime: {beforeFileInfo.LastWriteTime}");
-                
                 // When: 処理を実行
-                Console.WriteLine($"[Test] Calling ProcessFileAsync with: {testImageFile}");
                 var result = await VRChatScreenshotProcessor.ProcessFileAsync(testImageFile);
-                Console.WriteLine($"[Test] ProcessFileAsync result: Success={result.Success}, Message={result.Message}");
-
-                // テスト後のファイル情報をログ出力
-                var afterFileInfo = new FileInfo(testImageFile);
-                Console.WriteLine($"[Test] After - CreationTime: {afterFileInfo.CreationTime}, LastWriteTime: {afterFileInfo.LastWriteTime}");
                 
                 // Then: 成功結果が返り、タイムスタンプとExifが更新されること
                 string expectedMessageStart = $"{Path.GetFileName(TestFileName)}：{ExpectedTestFileDate:yyyy年MM月dd日 HH時mm分ss.fff}";
                 
-                Console.WriteLine($"[Test] Asserting results...");
-                Console.WriteLine($"[Test] Expected message start: {expectedMessageStart}");
-                Console.WriteLine($"[Test] Actual message: {result.Message}");
-                
                 Assert.True(result.Success, $"Expected success but got: {result.Message}");
                 Assert.StartsWith(expectedMessageStart, result.Message);
                 
-                Console.WriteLine($"[Test] Timestamp updates - CreationTimeUpdated: {result.CreationTimeUpdated}, LastWriteTimeUpdated: {result.LastWriteTimeUpdated}");
+                // 少なくとも1つのタイムスタンプが更新されていることを確認
                 Assert.True(result.CreationTimeUpdated || result.LastWriteTimeUpdated, 
                     "Expected at least one timestamp (CreationTime or LastWriteTime) to be updated");
                 
-                Console.WriteLine($"[Test] EXIF updated: {result.ExifUpdated}");
+                // EXIFが更新されていることを確認
                 Assert.True(result.ExifUpdated, "Expected EXIF to be updated");
                 
                 // 抽出された日時が正しいことを確認
-                Console.WriteLine($"[Test] Extracted date - Expected: {ExpectedTestFileDate}, Actual: {result.ExtractedDateTime}");
                 Assert.Equal(ExpectedTestFileDate, result.ExtractedDateTime);
                 
                 // ファイルのタイムスタンプが更新されていることを確認
                 var fileInfo = new FileInfo(testImageFile);
-                Console.WriteLine($"[Test] Final timestamps - CreationTime: {fileInfo.CreationTime}, LastWriteTime: {fileInfo.LastWriteTime}");
                 
                 // タイムスタンプの比較では日付部分のみを比較（時刻は処理時間によってずれる可能性があるため）
-                Console.WriteLine($"[Test] Comparing dates - Expected: {ExpectedTestFileDate.Date}, CreationTime: {fileInfo.CreationTime.Date}, LastWriteTime: {fileInfo.LastWriteTime.Date}");
                 Assert.Equal(ExpectedTestFileDate.Date, fileInfo.CreationTime.Date);
                 Assert.Equal(ExpectedTestFileDate.Date, fileInfo.LastWriteTime.Date);
             }
@@ -526,5 +509,103 @@ namespace VRCSSDateTimeFixer.Tests.Services
         }
 
         #endregion
+    }
+
+    public class ProgressDisplayTests : IDisposable
+    {
+        private readonly StringWriter _output;
+        private readonly TextWriter _originalOutput;
+        private readonly string _testDir;
+        private readonly string _testFilePath;
+
+        public ProgressDisplayTests()
+        {
+            // テスト用の出力をリダイレクト
+            _output = new StringWriter();
+            _originalOutput = Console.Out;
+            Console.SetOut(_output);
+
+            // テスト用の一時ファイルを作成
+            _testDir = Path.Combine(Path.GetTempPath(), "ProgressDisplayTests");
+            Directory.CreateDirectory(_testDir);
+            _testFilePath = Path.Combine(_testDir, "VRChat_1920x1080_2022-08-31_21-54-39.227.png");
+            File.WriteAllText(_testFilePath, "test");
+        }
+
+        public void Dispose()
+        {
+            // 出力を元に戻す
+            Console.SetOut(_originalOutput);
+            _output.Dispose();
+
+            // テストファイルを削除
+            if (Directory.Exists(_testDir))
+            {
+                Directory.Delete(_testDir, true);
+            }
+        }
+
+        [Fact]
+        public void DisplayProgress_ValidFile_ShowsCorrectFormat()
+        {
+            // Arrange
+            var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
+            var result = ProcessResult.CreateSuccess(
+                fileName: "test.png",
+                dateTime: dateTime,
+                creationTimeUpdated: true,
+                lastWriteTimeUpdated: true,
+                exifUpdated: true
+            );
+
+            // Act
+            VRChatScreenshotProcessor.DisplayProgress(result);
+
+            // Assert
+            var output = _output.ToString();
+            Assert.Contains("test.png", output);
+            Assert.Contains("2022年08月31日 21時54分39.227秒", output);
+            Assert.Contains("作成日時：更新済", output);
+            Assert.Contains("更新日時：更新済", output);
+            Assert.Contains("撮影日時：更新済", output);
+        }
+
+        [Fact]
+        public void DisplayProgress_NoUpdates_ShowsNotUpdated()
+        {
+            // Arrange
+            var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
+            var result = ProcessResult.CreateSuccess(
+                fileName: "test.png",
+                dateTime: dateTime,
+                creationTimeUpdated: false,
+                lastWriteTimeUpdated: false,
+                exifUpdated: false
+            );
+
+            // Act
+            VRChatScreenshotProcessor.DisplayProgress(result);
+
+            // Assert
+            var output = _output.ToString();
+            Assert.Contains("作成日時：更新不要", output);
+            Assert.Contains("更新日時：更新不要", output);
+            Assert.Contains("撮影日時：更新不要", output);
+        }
+
+        [Fact]
+        public void DisplayProgress_ErrorCase_ShowsErrorMessage()
+        {
+            // Arrange
+            var result = ProcessResult.Failure("test.png", "エラーが発生しました");
+
+            // Act
+            VRChatScreenshotProcessor.DisplayProgress(result);
+
+            // Assert
+            var output = _output.ToString();
+            Assert.Contains("test.png", output);
+            Assert.Contains("エラーが発生しました", output);
+        }
     }
 }
