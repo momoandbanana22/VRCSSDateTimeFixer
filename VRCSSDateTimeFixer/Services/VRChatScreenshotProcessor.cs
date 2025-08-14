@@ -22,39 +22,48 @@ namespace VRCSSDateTimeFixer.Services
             ".png"
         };
 
-        public static ProcessResult ProcessFile(string filePath)
+        public static async Task<ProcessResult> ProcessFileAsync(string filePath)
         {
+            string fileName = Path.GetFileName(filePath);
+
             // バリデーション
             var validationResult = ValidateFile(filePath);
             if (!validationResult.IsValid)
             {
-                return ProcessResult.Failure(validationResult.ErrorMessage);
+                return ProcessResult.Failure(fileName, validationResult.ErrorMessage);
             }
 
-            string fileName = Path.GetFileName(filePath);
+            // ファイル名から日時を抽出
             DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
-            
             if (!dateTime.HasValue)
             {
-                return ProcessResult.Failure(
+                return ProcessResult.Failure(fileName, 
                     string.Format(ErrorMessages.InvalidFileNameFormat, fileName));
             }
 
-            // ファイルのタイムスタンプを更新
-            bool timestampUpdated = FileTimestampUpdater.UpdateFileTimestamp(filePath);
-            
-            // Exif情報を更新
-            bool exifUpdated = false;
+            // 結果オブジェクトを作成
+            var result = ProcessResult.CreateSuccess(fileName, dateTime.Value, false, false, false);
+
+            // Exif情報を更新（サポートされている画像ファイルの場合）
             if (IsSupportedImageFile(filePath))
             {
-                exifUpdated = FileTimestampUpdater.UpdateExifDate(filePath);
+                bool exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
+                result.SetExifUpdated(exifUpdated);
             }
 
-            return ProcessResult.CreateSuccess(
-                dateTime.Value,
-                string.Format(ErrorMessages.SuccessMessage, fileName),
-                timestampUpdated,
-                exifUpdated);
+            // ファイルのタイムスタンプを更新（Exif更新後に実行して、最終的なタイムスタンプを設定）
+            var timestampResult = await FileTimestampUpdater.UpdateFileTimestampAsync(filePath);
+            result.SetCreationTimeUpdated(timestampResult.CreationTimeUpdated);
+            result.SetLastWriteTimeUpdated(timestampResult.LastWriteTimeUpdated);
+
+            return result;
+        }
+
+        // 下位互換性のため残す
+        [Obsolete("Use ProcessFileAsync instead.")]
+        public static ProcessResult ProcessFile(string filePath)
+        {
+            return ProcessFileAsync(filePath).GetAwaiter().GetResult();
         }
 
         private static (bool IsValid, string ErrorMessage) ValidateFile(string filePath)
@@ -93,27 +102,46 @@ namespace VRCSSDateTimeFixer.Services
     {
         public bool Success { get; }
         public string Message { get; }
+        public string FileName { get; }
         public DateTime? ExtractedDateTime { get; }
-        public bool TimestampUpdated { get; }
-        public bool ExifUpdated { get; }
+        public bool CreationTimeUpdated { get; private set; }
+        public bool LastWriteTimeUpdated { get; private set; }
+        public bool ExifUpdated { get; private set; }
+        public string ErrorMessage { get; private set; }
 
-        private ProcessResult(bool success, string message, DateTime? extractedDateTime, bool timestampUpdated, bool exifUpdated)
+        private ProcessResult(bool success, string fileName, string message, DateTime? extractedDateTime, 
+                           bool creationTimeUpdated, bool lastWriteTimeUpdated, bool exifUpdated, string? errorMessage = null)
         {
             Success = success;
+            FileName = fileName;
             Message = message;
             ExtractedDateTime = extractedDateTime;
-            TimestampUpdated = timestampUpdated;
+            CreationTimeUpdated = creationTimeUpdated;
+            LastWriteTimeUpdated = lastWriteTimeUpdated;
             ExifUpdated = exifUpdated;
+            ErrorMessage = errorMessage ?? string.Empty;
         }
 
-        public static ProcessResult CreateSuccess(DateTime dateTime, string message, bool timestampUpdated, bool exifUpdated)
+        public static ProcessResult CreateSuccess(string fileName, DateTime dateTime, 
+            bool creationTimeUpdated, bool lastWriteTimeUpdated, bool exifUpdated)
         {
-            return new ProcessResult(true, message, dateTime, timestampUpdated, exifUpdated);
+            string dateTimeStr = dateTime.ToString("yyyy年MM月dd日 HH時mm分ss.fff");
+            string message = $"{fileName}：{dateTimeStr} 作成日時：{(creationTimeUpdated ? "更新済" : "スキップ")} " +
+                           $"更新日時：{(lastWriteTimeUpdated ? "更新済" : "スキップ")} " +
+                           $"撮影日時：{(exifUpdated ? "更新済" : "スキップ")}";
+            
+            return new ProcessResult(true, fileName, message, dateTime, 
+                creationTimeUpdated, lastWriteTimeUpdated, exifUpdated);
         }
 
-        public static ProcessResult Failure(string message)
+        public static ProcessResult Failure(string fileName, string errorMessage)
         {
-            return new ProcessResult(false, message, null, false, false);
+            return new ProcessResult(false, fileName, $"{fileName}: {errorMessage}", 
+                null, false, false, false, errorMessage);
         }
+
+        public void SetCreationTimeUpdated(bool updated) => CreationTimeUpdated = updated;
+        public void SetLastWriteTimeUpdated(bool updated) => LastWriteTimeUpdated = updated;
+        public void SetExifUpdated(bool updated) => ExifUpdated = updated;
     }
 }

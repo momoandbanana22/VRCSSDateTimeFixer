@@ -3,6 +3,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using Xunit;
+using System.Threading.Tasks;
 
 namespace VRCSSDateTimeFixer.Tests
 {
@@ -47,14 +48,63 @@ namespace VRCSSDateTimeFixer.Tests
         }
 
         [Fact]
-        public void 有効なPNGファイルのExif撮影日時を更新できること()
+        public async Task 有効なPNGファイルのExif撮影日時を更新できること()
         {
             // Arrange
             string testFile = CreateTestPngFile();
             string testImageFile = MoveToTestImageFile(testFile);
 
             // Act
-            bool result = FileTimestampUpdater.UpdateExifDate(testImageFile);
+            bool result = await FileTimestampUpdater.UpdateExifDateAsync(testImageFile);
+
+            // Assert
+            Assert.True(result);
+            AssertExifDateMatchesExpected(testImageFile);
+        }
+
+        [Fact]
+        public async Task UpdateFileTimestampAsync_有効なファイル名から日時を抽出してタイムスタンプを更新できること()
+        {
+            // Arrange
+            string testFile = CreateTestFile("test.txt");
+            string testImageFile = MoveToTestImageFile(testFile);
+
+            // Act
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater
+                .UpdateFileTimestampAsync(testImageFile);
+
+            // Assert
+            Assert.True(creationTimeUpdated);
+            Assert.True(lastWriteTimeUpdated);
+            var fileInfo = new FileInfo(testImageFile);
+            AssertFileTimestampsMatchExpected(fileInfo);
+        }
+
+        [Fact]
+        public async Task UpdateFileTimestampAsync_無効なファイルパスではfalseを返すこと()
+        {
+            // Arrange
+            string invalidPath = Path.Combine(Path.GetTempPath(), "nonexistent.txt");
+
+            // Act
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater
+                .UpdateFileTimestampAsync(invalidPath);
+
+            // Assert
+            Assert.False(creationTimeUpdated);
+            Assert.False(lastWriteTimeUpdated);
+        }
+
+        [Fact]
+        public async Task UpdateExifDateAsync_有効なPNGファイルのExif撮影日時を更新できること()
+        {
+            // Arrange
+            string testFile = CreateTestPngFile();
+            string testImageFile = MoveToTestImageFile(testFile);
+
+            // Act
+            bool result = await FileTimestampUpdater
+                .UpdateExifDateAsync(testImageFile);
 
             // Assert
             Assert.True(result);
@@ -86,8 +136,35 @@ namespace VRCSSDateTimeFixer.Tests
                 Path.GetDirectoryName(sourceFile) ?? string.Empty,
                 TestImageName);
 
-            if (File.Exists(targetFile)) File.Delete(targetFile);
-            File.Move(sourceFile, targetFile);
+            // 既存のファイルがロックされていないことを確認して削除
+            if (File.Exists(targetFile))
+            {
+                try
+                {
+                    File.SetAttributes(targetFile, FileAttributes.Normal);
+                    File.Delete(targetFile);
+                }
+                catch (IOException)
+                {
+                    // 削除に失敗した場合は別の一意なファイル名を生成
+                    string directory = Path.GetDirectoryName(targetFile) ?? string.Empty;
+                    string fileNameWithoutExt = Path.GetFileNameWithoutExtension(targetFile);
+                    string extension = Path.GetExtension(targetFile);
+                    targetFile = Path.Combine(directory, $"{fileNameWithoutExt}_{Guid.NewGuid()}{extension}");
+                }
+            }
+
+            // ファイルをコピーしてから元のファイルを削除
+            File.Copy(sourceFile, targetFile, true);
+            try
+            {
+                File.Delete(sourceFile);
+            }
+            catch
+            {
+                // 元のファイルの削除に失敗しても無視
+            }
+
             _tempFiles.Add(targetFile);
             return targetFile;
         }
