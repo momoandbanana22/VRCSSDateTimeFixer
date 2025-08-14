@@ -262,7 +262,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         [InlineData(null, "ファイルパスが指定されていません")]
         [InlineData("", "ファイルパスが指定されていません")]
         [InlineData("nonexistent_file.png", "ファイルが見つかりません")]
-        public void 不正なファイルパスを指定した場合_失敗結果を返すこと(string? filePath, string expectedErrorMessage)
+        public async Task 不正なファイルパスを指定した場合_失敗結果を返すこと(string? filePath, string expectedErrorMessage)
         {
             // Given: 不正なファイルパス
             var targetPath = filePath == "nonexistent_file.png"
@@ -270,7 +270,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                 : filePath;
 
             // When: 処理を実行
-            var result = VRChatScreenshotProcessor.ProcessFile(targetPath!);
+            var result = await VRChatScreenshotProcessor.ProcessFileAsync(targetPath!);
 
             // Then: 失敗結果が返り、適切なエラーメッセージが含まれていること
             AssertProcessResult(

@@ -36,8 +36,10 @@ namespace VRCSSDateTimeFixer.Services
                     
                     // Save the image with updated metadata
                     await using var output = File.Create(filePath);
-                    await image.SaveAsync(output, image.Metadata.DecodedImageFormat);
+                    var format = image.Metadata.DecodedImageFormat ?? 
+                        throw new InvalidOperationException("画像フォーマットを特定できませんでした");
                     
+                    await image.SaveAsync(output, format);
                     return true;
                 }
             }

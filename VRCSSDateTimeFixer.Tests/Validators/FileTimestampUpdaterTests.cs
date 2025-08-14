@@ -31,17 +31,18 @@ namespace VRCSSDateTimeFixer.Tests.Validators
         }
 
         [Fact]
-        public void 有効なファイル名から日時を抽出してタイムスタンプを更新できること()
+        public async Task 有効なファイル名から日時を抽出してタイムスタンプを更新できること()
         {
             // Arrange
             string testFile = CreateTestFile("test.txt");
             string testImageFile = MoveToTestImageFile(testFile);
 
             // Act
-            bool result = FileTimestampUpdater.UpdateFileTimestamp(testImageFile);
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(testImageFile);
 
             // Assert
-            Assert.True(result);
+            Assert.True(creationTimeUpdated);
+            Assert.True(lastWriteTimeUpdated);
             var fileInfo = new FileInfo(testImageFile);
             AssertFileTimestampsMatchExpected(fileInfo);
         }

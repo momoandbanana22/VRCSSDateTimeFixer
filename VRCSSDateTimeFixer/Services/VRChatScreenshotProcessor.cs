@@ -65,7 +65,14 @@ namespace VRCSSDateTimeFixer.Services
             // 進捗を表示
             var progressDisplay = new ProgressDisplay();
             progressDisplay.StartProcessing(result.FileName);
-            progressDisplay.ShowExtractedDateTime(result.ExtractedDateTime.Value);
+            
+            // CreateSuccessメソッドでExtractedDateTimeにnullを設定していないため、nullチェックは不要だが、念のため
+            if (result.ExtractedDateTime is not DateTime extractedDateTime)
+            {
+                throw new InvalidOperationException("ExtractedDateTime should not be null for successful processing");
+            }
+            
+            progressDisplay.ShowExtractedDateTime(extractedDateTime);
             progressDisplay.ShowCreationTimeUpdateResult(result.CreationTimeUpdated);
             progressDisplay.ShowLastWriteTimeUpdateResult(result.LastWriteTimeUpdated);
             progressDisplay.ShowExifUpdateResult(result.ExifUpdated);
