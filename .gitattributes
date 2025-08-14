@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Force line endings to LF for shell scripts
+*.sh text eol=lf
+
+# Force line endings to CRLF for Windows files
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+
+# Binary files that should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.nupkg binary
+
+# Exclude build outputs and NuGet packages from source control
+bin/ export-ignore
+obj/ export-ignore
+*.user export-ignore
+*.suo export-ignore
+*.userosscache export-ignore
+*.sln.docstates export-ignore
+.vs/ export-ignore
+.vscode/ export-ignore
