@@ -20,6 +20,8 @@
   4) `./create_release.ps1` で GitHub ドラフト作成
   5) `./publish_release.ps1` で公開
   6) `./finalize_release.ps1` で最終処理（タグ作成・配布物作成 など）
+ 
+→ 各スクリプトの役割・使いどころの詳細は「[スクリプトリファレンス](#スクリプトリファレンス)」を参照してください。
 
 ---
 
@@ -108,7 +110,6 @@ git checkout -b release/vX.Y.Z
 ## スクリプトリファレンス
 
 ### ビルドスクリプト
-
 #### `build.ps1`
 - **目的**: アプリケーションのビルドとパッケージング
 - **実行タイミング**: リリース前のビルド作成時
@@ -117,6 +118,14 @@ git checkout -b release/vX.Y.Z
   - アプリケーションのビルド
   - 単一実行ファイルの生成
   - 配布用ZIPファイルの作成
+ - **入出力例**:
+   - 入力（前提）:
+     - `.NET SDK` がインストール済み
+     - スクリプト内の `$version` `"1.0.0"` と `$runtime` `"win-x64"` を使用
+   - 出力:
+     - 公開フォルダ: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64/`
+     - ZIP: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64.zip`
+     - `README.txt` を公開フォルダ直下に生成
 
 #### `Release.ps1`
 - **目的**: リリース用の最終ビルドとテストの実行
@@ -127,6 +136,15 @@ git checkout -b release/vX.Y.Z
   - ユニットテストの実行
   - パッケージング
   - リリースノートの生成
+ - **入出力例**:
+   - 入力（前提）:
+     - `.NET SDK` がインストール済み、テスト実行可能
+     - `$version` `"1.0.0"`、`$runtime` `"win-x64"`
+   - 出力:
+     - 公開フォルダ: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64/`
+       - 同フォルダに `README.md` `LICENSE` `CHANGELOG.md` をコピー
+       - `README.txt` を生成
+     - ZIP: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64.zip`
 
 ### テストスクリプト
 
@@ -138,6 +156,12 @@ git checkout -b release/vX.Y.Z
   - テスト用ファイルの生成
   - 基本的な機能テストの実行
   - テスト結果の検証
+ - **入出力例**:
+   - 入力（前提）:
+     - ビルド済み実行ファイル: `VRCSSDateTimeFixer/bin/Release/net8.0/win-x64/publish/VRCSSDateTimeFixer.exe`
+   - 出力:
+     - テスト用ディレクトリ: `TestData/TestFiles/`（配下に PNG などを生成）
+     - コンソール出力（タイムスタンプの変化を表示）
 
 #### `TestData/performance_test.ps1`
 - **目的**: パフォーマンステストの実行
@@ -147,6 +171,13 @@ git checkout -b release/vX.Y.Z
   - 大量のテストファイル生成
   - パフォーマンス計測
   - レポート生成
+ - **入出力例**:
+   - 入力（前提）:
+     - ビルド済み実行ファイル
+     - 既定の作成数 `$fileCount = 1000`
+   - 出力:
+     - `TestData/PerformanceTest/` 配下に多数のテストファイル
+     - 実行時間・スループットをコンソール出力
 
 ### リリーススクリプト
 
@@ -158,6 +189,15 @@ git checkout -b release/vX.Y.Z
   - バージョン番号の確認
   - リリースノートの生成
   - ドラフトリリースの作成
+ - **入出力例**:
+   - 入力（前提）:
+     - GitHub CLI `gh` がインストール・認証済み
+     - ローカルで `Release.ps1` により ZIP が生成済み
+     - `$version` `"1.0.0"`
+   - 出力:
+     - ZIP パス: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64.zip`
+     - 一時ファイル: `bin/Release/Publish/release_notes.md`（実行後に削除）
+     - GitHub 上の「ドラフト」リリース（タグ `v1.0.0`、アセット添付）
 
 #### `publish_release.ps1`
 - **目的**: リリースの公開
@@ -167,6 +207,13 @@ git checkout -b release/vX.Y.Z
   - リリースアセットのアップロード
   - リリースノートの更新
   - リリースの公開
+ - **入出力例**:
+   - 入力（前提）:
+     - GitHub CLI `gh` がインストール・認証済み
+     - `main` ブランチおよび `v1.0.0` タグの push が可能
+   - 出力:
+     - `git push origin main` と `git push origin v1.0.0` の実行
+     - `create_release.ps1` の実行により GitHub 上にドラフトリリース作成・アセット添付
 
 #### `finalize_release.ps1`
 - **目的**: リリースの最終処理とパッケージング
@@ -177,6 +224,16 @@ git checkout -b release/vX.Y.Z
   - バージョンタグの作成
   - リリースパッケージのビルド
   - 配布用ファイルのコピー
+ - **入出力例**:
+   - 入力（前提）:
+     - `main` ブランチ上・未コミット変更なし
+     - テストがローカルで成功する状態
+     - `$version` `"1.0.0"`
+   - 出力:
+     - リリースコミット: `"Prepare for release v1.0.0"`
+     - 署名付きタグ: `v1.0.0`
+     - ZIP: `bin/Release/Publish/VRCSSDateTimeFixer-1.0.0-win-x64.zip`
+     - 配布用ディレクトリ: `dist/` に ZIP と `README.md` `LICENSE` `CHANGELOG.md` をコピー
 
 ## トラブルシューティング
 
