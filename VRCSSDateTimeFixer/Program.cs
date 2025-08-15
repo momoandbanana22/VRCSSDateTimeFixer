@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Linq;
 
 using VRCSSDateTimeFixer.Services;
 using VRCSSDateTimeFixer.Validators;
@@ -115,10 +116,18 @@ namespace VRCSSDateTimeFixer
         private static async Task ProcessDirectoryAsync(string directoryPath, bool recursive)
         {
             var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            var files = Directory.EnumerateFiles(directoryPath, "*.png", searchOption);
+            // PNG/JPEG を対象
+            var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".png", ".jpg", ".jpeg"
+            };
+            var files = Directory
+                .EnumerateFiles(directoryPath, "*.*", searchOption)
+                .Where(p => allowedExtensions.Contains(Path.GetExtension(p)))
+                .ToList();
 
             int processedCount = 0;
-            int totalFiles = files.Count();
+            int totalFiles = files.Count;
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             Console.WriteLine($"対象ファイル数: {totalFiles} 件");
