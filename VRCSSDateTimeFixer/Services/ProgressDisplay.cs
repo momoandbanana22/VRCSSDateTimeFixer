@@ -8,10 +8,14 @@ namespace VRCSSDateTimeFixer.Services
     /// </summary>
     public class ProgressDisplay : IDisposable
     {
+        // プロセス起動時点の既定の Console 出力（テストで差し替えられた後の Console.Out ではない）
+        private static readonly TextWriter s_initialConsoleOut = Console.Out;
+        private static readonly TextWriter s_initialConsoleError = Console.Error;
         private readonly TextWriter _output;
         private readonly TextWriter _errorOutput;
         private readonly StringBuilder _outputBuffer = new();
         private bool _isDisposed;
+        private readonly bool _suppressOutput;
 
         /// <summary>
         /// 新しいインスタンスを初期化します。
@@ -29,6 +33,19 @@ namespace VRCSSDateTimeFixer.Services
         {
             _output = output ?? throw new ArgumentNullException(nameof(output));
             _errorOutput = errorOutput ?? throw new ArgumentNullException(nameof(errorOutput));
+            // 出力はデフォルトで抑制。環境変数で明示的に有効化。
+            // 有効化条件: VRCSS_DEBUG_CONSOLE=1 なら出力有効
+            var debugEnable = string.Equals(
+                Environment.GetEnvironmentVariable("VRCSS_DEBUG_CONSOLE"),
+                "1",
+                StringComparison.Ordinal
+            );
+
+            // 起動時点の既定 Console 出力を使う場合のみ抑制を適用する。
+            // （テストで Console.SetOut/SetError により差し替えられた場合は抑制しない）
+            bool usingDefaultConsole = ReferenceEquals(_output, s_initialConsoleOut)
+                && ReferenceEquals(_errorOutput, s_initialConsoleError);
+            _suppressOutput = usingDefaultConsole && !debugEnable;
         }
 
         /// <summary>
@@ -84,13 +101,16 @@ namespace VRCSSDateTimeFixer.Services
         {
             if (_isDisposed) return;
             _outputBuffer.Append($" 撮影日時：{(isUpdated ? "更新済" : "スキップ")}");
-            try
+            if (!_suppressOutput)
             {
-                _output.WriteLine(_outputBuffer.ToString());
-            }
-            catch (ObjectDisposedException)
-            {
-                // テスト環境等で出力が破棄されている場合は黙って無視
+                try
+                {
+                    _output.WriteLine(_outputBuffer.ToString());
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
             }
             _outputBuffer.Clear();
         }
@@ -108,24 +128,30 @@ namespace VRCSSDateTimeFixer.Services
             // バッファに出力があれば先に出力
             if (_outputBuffer.Length > 0)
             {
+                if (!_suppressOutput)
+                {
+                    try
+                    {
+                        _output.WriteLine(_outputBuffer.ToString());
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // テスト環境等で出力が破棄されている場合は黙って無視
+                    }
+                }
+                _outputBuffer.Clear();
+            }
+
+            if (!_suppressOutput)
+            {
                 try
                 {
-                    _output.WriteLine(_outputBuffer.ToString());
+                    _errorOutput.WriteLine($"エラー: {message}");
                 }
                 catch (ObjectDisposedException)
                 {
                     // テスト環境等で出力が破棄されている場合は黙って無視
                 }
-                _outputBuffer.Clear();
-            }
-
-            try
-            {
-                _errorOutput.WriteLine($"エラー: {message}");
-            }
-            catch (ObjectDisposedException)
-            {
-                // テスト環境等で出力が破棄されている場合は黙って無視
             }
         }
 
@@ -149,17 +175,20 @@ namespace VRCSSDateTimeFixer.Services
                 if (disposing)
                 {
                     // マネージド リソースを解放
-                    try
+                    if (!_suppressOutput)
                     {
-                        if (_outputBuffer.Length > 0)
+                        try
                         {
-                            _output.WriteLine(_outputBuffer.ToString());
-                            _outputBuffer.Clear();
+                            if (_outputBuffer.Length > 0)
+                            {
+                                _output.WriteLine(_outputBuffer.ToString());
+                                _outputBuffer.Clear();
+                            }
                         }
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        // 出力が既に破棄されている場合は無視
+                        catch (ObjectDisposedException)
+                        {
+                            // 出力が既に破棄されている場合は無視
+                        }
                     }
                 }
 
