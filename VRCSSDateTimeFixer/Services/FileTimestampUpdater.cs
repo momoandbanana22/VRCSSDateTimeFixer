@@ -224,13 +224,15 @@ namespace VRCSSDateTimeFixer
                         image.Metadata.ExifProfile.SetValue(ExifTag.DateTimeOriginal, dateTimeStr);
 
                         // 一時ファイルに保存（元の拡張子を維持する）
+                        // File.Replace は同一ボリューム内でのみ動作するため、対象と同じディレクトリに作成する
                         string ext = Path.GetExtension(filePath);
                         if (string.IsNullOrWhiteSpace(ext))
                         {
                             ext = ".png"; // 既定はPNG
                         }
+                        var targetDir = Path.GetDirectoryName(filePath) ?? Directory.GetCurrentDirectory();
                         tempFile = Path.Combine(
-                            Path.GetTempPath(),
+                            targetDir,
                             $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}{ext}"
                         );
 
