@@ -1,6 +1,9 @@
 using System.CommandLine;
+using System.Runtime.CompilerServices;
 using VRCSSDateTimeFixer.Services;
 using VRCSSDateTimeFixer.Validators;
+
+[assembly: InternalsVisibleTo("VRCSSDateTimeFixer.Tests")]
 
 namespace VRCSSDateTimeFixer
 {
@@ -63,7 +66,7 @@ namespace VRCSSDateTimeFixer
             }
         }
 
-        private static async Task ProcessFileAsync(string filePath)
+        internal static async Task ProcessFileAsync(string filePath)
         {
             try
             {
@@ -81,13 +84,36 @@ namespace VRCSSDateTimeFixer
 
                 _progressDisplay.ShowExtractedDateTime(dateTime.Value);
 
+                // 現在のファイルのタイムスタンプを保存
+                var originalCreationTime = File.GetCreationTime(filePath);
+                var originalLastWriteTime = File.GetLastWriteTime(filePath);
+
                 // ファイルのタイムスタンプを更新
                 var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(filePath);
                 _progressDisplay.ShowCreationTimeUpdateResult(creationTimeUpdated);
                 _progressDisplay.ShowLastWriteTimeUpdateResult(lastWriteTimeUpdated);
 
-                // Exif情報を更新
-                bool exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
+                // Exif情報を更新（タイムスタンプは変更しない）
+                bool exifUpdated = false;
+                try
+                {
+                    // 現在のタイムスタンプを保存
+                    var currentCreationTime = File.GetCreationTime(filePath);
+                    var currentLastWriteTime = File.GetLastWriteTime(filePath);
+                    
+                    // Exifを更新
+                    exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
+                    
+                    // ファイルのタイムスタンプを元に戻す（Exif更新で変更された場合に備えて）
+                    File.SetCreationTime(filePath, currentCreationTime);
+                    File.SetLastWriteTime(filePath, currentLastWriteTime);
+                    File.SetCreationTimeUtc(filePath, currentCreationTime.ToUniversalTime());
+                    File.SetLastWriteTimeUtc(filePath, currentLastWriteTime.ToUniversalTime());
+                }
+                catch (Exception ex)
+                {
+                    _progressDisplay.ShowError($"Exifの更新中にエラーが発生しました: {ex.Message}");
+                }
                 _progressDisplay.ShowExifUpdateResult(exifUpdated);
             }
             catch (Exception ex)

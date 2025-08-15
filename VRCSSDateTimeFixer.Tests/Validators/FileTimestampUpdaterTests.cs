@@ -172,11 +172,115 @@ namespace VRCSSDateTimeFixer.Tests.Validators
             AssertFileTimestampsMatchExpected(fileInfo);
         }
 
+        [Fact]
+        public async Task UpdateExifDateAsync_Exifが正しく更新されること()
+        {
+            // Arrange
+            string testFile = CreateTestPngFile();
+            string testImageFile = MoveToTestImageFile(testFile);
+            
+            // まずタイムスタンプを設定
+            var expectedDate = new DateTime(2022, 8, 31, 21, 54, 39, 227, DateTimeKind.Local);
+            File.SetCreationTime(testImageFile, expectedDate);
+            File.SetLastWriteTime(testImageFile, expectedDate);
+            File.SetLastAccessTime(testImageFile, expectedDate);
+            
+            // Act
+            bool result = await FileTimestampUpdater.UpdateExifDateAsync(testImageFile);
+            
+            // Assert
+            Assert.True(result);
+            
+            // Exifが正しく更新されたことを確認
+            AssertExifDateMatchesExpected(testImageFile);
+            
+            // このメソッドはタイムスタンプの管理を行わないため、
+            // タイムスタンプのチェックは呼び出し元の責任となる
+        }
+        
+        [Fact]
+        public async Task UpdateFileTimestampAsync_作成日時と最終更新日時が両方とも更新されること()
+        {
+            // Arrange
+            // テスト用のPNGファイルを作成（テキストファイルではなく）
+            string testFile = CreateTestPngFile();
+            
+            // テスト用のVRChatスクリーンショット形式のファイル名にリネーム
+            string testImageFile = MoveToTestImageFile(testFile);
+            
+            // ファイル名が期待通りの形式であることを確認
+            string fileName = Path.GetFileName(testImageFile);
+            Assert.StartsWith("VRChat_", fileName);
+            
+            // 現在のタイムスタンプを明示的に設定（更新前とは異なる日時にする）
+            var originalDate = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local);
+            File.SetCreationTime(testImageFile, originalDate);
+            File.SetLastWriteTime(testImageFile, originalDate);
+            
+            // 現在のタイムスタンプを記録
+            var originalCreationTime = File.GetCreationTime(testImageFile);
+            var originalLastWriteTime = File.GetLastWriteTime(testImageFile);
+            
+            // 期待される日時（ファイル名から抽出される日時）
+            var expectedDate = ExpectedDate;
+            
+            // 現在のタイムスタンプが期待値と異なることを確認
+            Assert.NotEqual(expectedDate, originalCreationTime);
+            Assert.NotEqual(expectedDate, originalLastWriteTime);
+            
+            // Act
+            var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(testImageFile);
+            
+            // Assert
+            Assert.True(creationTimeUpdated, "作成日時が更新されるべき");
+            Assert.True(lastWriteTimeUpdated, "最終更新日時が更新されるべき");
+            
+            var fileInfo = new FileInfo(testImageFile);
+            
+            // タイムスタンプが期待通りの日時に更新されていることを確認
+            Assert.Equal(expectedDate.Year, fileInfo.CreationTime.Year);
+            Assert.Equal(expectedDate.Month, fileInfo.CreationTime.Month);
+            Assert.Equal(expectedDate.Day, fileInfo.CreationTime.Day);
+            Assert.Equal(expectedDate.Hour, fileInfo.CreationTime.Hour);
+            Assert.Equal(expectedDate.Minute, fileInfo.CreationTime.Minute);
+            Assert.Equal(expectedDate.Second, fileInfo.CreationTime.Second);
+            
+            // 最終更新日時も同じ日時に設定されていることを確認
+            Assert.Equal(expectedDate.Year, fileInfo.LastWriteTime.Year);
+            Assert.Equal(expectedDate.Month, fileInfo.LastWriteTime.Month);
+            Assert.Equal(expectedDate.Day, fileInfo.LastWriteTime.Day);
+            Assert.Equal(expectedDate.Hour, fileInfo.LastWriteTime.Hour);
+            Assert.Equal(expectedDate.Minute, fileInfo.LastWriteTime.Minute);
+            Assert.Equal(expectedDate.Second, fileInfo.LastWriteTime.Second);
+            
+            // 元のタイムスタンプと異なることを確認
+            Assert.NotEqual(originalCreationTime, fileInfo.CreationTime);
+            Assert.NotEqual(originalLastWriteTime, fileInfo.LastWriteTime);
+            
+            // ファイルが存在することを確認
+            Assert.True(File.Exists(testImageFile), "テストファイルが存在するべき");
+        }
+        
+        // テスト用のモックDateTimeProvider
+        private class MockDateTimeProvider
+        {
+            private readonly DateTime _now;
+            
+            public MockDateTimeProvider(DateTime now)
+            {
+                _now = now;
+            }
+            
+            public DateTime Now => _now;
+        }
+
         #region プライベートヘルパーメソッド
 
         private string CreateTestFile(string extension = ".tmp")
         {
-            string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}{extension}");
+            string uniqueDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(uniqueDir);
+            string tempFile = Path.Combine(uniqueDir, $"{Guid.NewGuid()}{extension}");
             File.WriteAllText(tempFile, "test");
             _tempFiles.Add(tempFile);
             return tempFile;
@@ -184,7 +288,9 @@ namespace VRCSSDateTimeFixer.Tests.Validators
 
         private string CreateTestPngFile()
         {
-            string tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.png");
+            string uniqueDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(uniqueDir);
+            string tempFile = Path.Combine(uniqueDir, $"{Guid.NewGuid()}.png");
             using var image = new Image<Rgba32>(100, 100);
             image.SaveAsPng(tempFile);
             _tempFiles.Add(tempFile);

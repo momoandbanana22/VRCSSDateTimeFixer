@@ -84,7 +84,14 @@ namespace VRCSSDateTimeFixer.Services
         {
             if (_isDisposed) return;
             _outputBuffer.Append($" 撮影日時：{(isUpdated ? "更新済" : "スキップ")}");
-            _output.WriteLine(_outputBuffer.ToString());
+            try
+            {
+                _output.WriteLine(_outputBuffer.ToString());
+            }
+            catch (ObjectDisposedException)
+            {
+                // テスト環境等で出力が破棄されている場合は黙って無視
+            }
             _outputBuffer.Clear();
         }
 
@@ -101,11 +108,25 @@ namespace VRCSSDateTimeFixer.Services
             // バッファに出力があれば先に出力
             if (_outputBuffer.Length > 0)
             {
-                _output.WriteLine(_outputBuffer.ToString());
+                try
+                {
+                    _output.WriteLine(_outputBuffer.ToString());
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
                 _outputBuffer.Clear();
             }
 
-            _errorOutput.WriteLine($"エラー: {message}");
+            try
+            {
+                _errorOutput.WriteLine($"エラー: {message}");
+            }
+            catch (ObjectDisposedException)
+            {
+                // テスト環境等で出力が破棄されている場合は黙って無視
+            }
         }
 
         /// <summary>

@@ -177,6 +177,14 @@ namespace VRCSSDateTimeFixer
             return true;
         }
 
+        /// <summary>
+        /// 画像ファイルのExifデータを更新します。
+        /// このメソッドはファイルの内容を更新するため、その更新により、
+        /// OSによってファイルのタイムスタンプが変更される可能性があります。
+        /// タイムスタンプを保持する必要がある場合は、呼び出し元で管理してください。
+        /// </summary>
+        /// <param name="filePath">Exifを更新する画像ファイルのパス</param>
+        /// <returns>Exifの更新に成功した場合はtrue、それ以外はfalse</returns>
         public static async Task<bool> UpdateExifDateAsync(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
@@ -193,36 +201,107 @@ namespace VRCSSDateTimeFixer
             string fileName = Path.GetFileName(filePath);
             try
             {
-                DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
-                if (!dateTime.HasValue)
+                // 例外で失敗する実装のため、null 許容は不要
+                DateTime dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
+                string dateTimeStr = dateTime.ToString("yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture);
+
+                // 現在のタイムスタンプを保存（置換後に復元する）
+                var originalCreationTime = File.GetCreationTime(filePath);
+                var originalLastWriteTime = File.GetLastWriteTime(filePath);
+
+                // 読み取り専用属性を一時的に解除（using 外で行う）
+                var attributes = File.GetAttributes(filePath);
+                bool wasReadOnly = (attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly;
+                if (wasReadOnly)
                 {
-                    return false;
+                    File.SetAttributes(filePath, attributes & ~FileAttributes.ReadOnly);
                 }
 
-                string dateTimeStr = dateTime.Value.ToString("yyyy:MM:dd HH:mm:ss", CultureInfo.InvariantCulture);
-
-                // 画像を非同期で読み込んでExifを更新
-                using (var image = await Task.Run(() => Image.Load(filePath)))
+                string? tempFile = null;
+                try
                 {
-                    try
+                    // 画像を非同期で読み込んでExifを更新（ここでは保存まで）
+                    using (var image = await Task.Run(() => Image.Load(filePath)))
                     {
                         // Exifプロファイルがなければ作成
                         image.Metadata.ExifProfile ??= new ExifProfile();
-
                         // 撮影日時を設定
-                        image.Metadata.ExifProfile.SetValue(
-                            ExifTag.DateTimeOriginal,
-                            dateTimeStr);
+                        image.Metadata.ExifProfile.SetValue(ExifTag.DateTimeOriginal, dateTimeStr);
 
-                        // 非同期で変更を保存
-                        await Task.Run(() => image.Save(filePath));
-                        return true;
+                        // 一時ファイルに保存（元の拡張子を維持する）
+                        string ext = Path.GetExtension(filePath);
+                        if (string.IsNullOrWhiteSpace(ext))
+                        {
+                            ext = ".png"; // 既定はPNG
+                        }
+                        tempFile = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}{ext}");
+
+                        await Task.Run(() =>
+                        {
+                            var lower = ext.ToLowerInvariant();
+                            if (lower == ".png")
+                            {
+                                var encoder = new SixLabors.ImageSharp.Formats.Png.PngEncoder
+                                {
+                                    ColorType = SixLabors.ImageSharp.Formats.Png.PngColorType.RgbWithAlpha,
+                                };
+                                image.Save(tempFile, encoder);
+                            }
+                            else if (lower == ".jpg" || lower == ".jpeg")
+                            {
+                                var encoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder
+                                {
+                                    Quality = 90
+                                };
+                                image.Save(tempFile, encoder);
+                            }
+                            else
+                            {
+                                // それ以外は拡張子から自動判定
+                                image.Save(tempFile);
+                            }
+                        });
                     }
-                    catch (Exception ex) when (IsExpectedException())
+
+                    // ここで画像のハンドルは解放済み。ファイル置換を実施。
+                    File.Replace(tempFile, filePath, null);
+
+                    // タイムスタンプを元に戻す
+                    File.SetCreationTime(filePath, originalCreationTime);
+                    File.SetLastWriteTime(filePath, originalLastWriteTime);
+                    File.SetCreationTimeUtc(filePath, originalCreationTime.ToUniversalTime());
+                    File.SetLastWriteTimeUtc(filePath, originalLastWriteTime.ToUniversalTime());
+
+                    // using を抜けた後（すべてのハンドル解放後）に、短いリトライで読み取り可能か確認
+                    const int maxWaitMs = 200;
+                    const int stepMs = 20;
+                    int waited = 0;
+                    while (true)
                     {
-                        // Exifの更新に失敗しても処理は続行
-                        System.Diagnostics.Debug.WriteLine($"Exif更新エラー ({filePath}): {ex.Message}");
-                        return false;
+                        try
+                        {
+                            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            break; // 開けたらOK
+                        }
+                        catch (IOException)
+                        {
+                            if (waited >= maxWaitMs) break;
+                            await Task.Delay(stepMs);
+                            waited += stepMs;
+                        }
+                    }
+
+                    return true;
+                }
+                finally
+                {
+                    // 一時ファイルを削除（存在する場合）
+                    try { if (!string.IsNullOrEmpty(tempFile) && File.Exists(tempFile)) File.Delete(tempFile); } catch { }
+
+                    // 読み取り専用属性を元に戻す
+                    if (wasReadOnly)
+                    {
+                        try { File.SetAttributes(filePath, File.GetAttributes(filePath) | FileAttributes.ReadOnly); } catch { }
                     }
                 }
             }
