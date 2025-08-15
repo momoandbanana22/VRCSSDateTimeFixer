@@ -164,14 +164,6 @@ namespace VRCSSDateTimeFixer
             }
         }
 
-        // 下位互換性のため残す
-        [Obsolete("Use UpdateFileTimestampAsync instead.")]
-        public static bool UpdateFileTimestamp(string filePath)
-        {
-            var result = UpdateFileTimestampAsync(filePath).GetAwaiter().GetResult();
-            return result.CreationTimeUpdated || result.LastWriteTimeUpdated;
-        }
-
         private static bool IsExpectedException()
         {
             // テストのため、とりあえず常にtrueを返す
@@ -342,11 +334,5 @@ namespace VRCSSDateTimeFixer
             }
         }
 
-        // 下位互換性のため残す
-        [Obsolete("Use UpdateExifDateAsync instead.")]
-        public static bool UpdateExifDate(string filePath)
-        {
-            return UpdateExifDateAsync(filePath).GetAwaiter().GetResult();
-        }
     }
 }

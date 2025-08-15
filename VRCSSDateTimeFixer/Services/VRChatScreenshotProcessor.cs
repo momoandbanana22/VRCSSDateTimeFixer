@@ -82,13 +82,6 @@ namespace VRCSSDateTimeFixer.Services
             return result;
         }
 
-        // 下位互換性のため残す
-        [Obsolete("Use ProcessFileAsync instead.")]
-        public static ProcessResult ProcessFile(string filePath)
-        {
-            return ProcessFileAsync(filePath).GetAwaiter().GetResult();
-        }
-
         private static (bool IsValid, string ErrorMessage) ValidateFile(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))

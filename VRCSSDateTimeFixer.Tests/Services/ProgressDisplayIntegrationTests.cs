@@ -32,7 +32,8 @@ namespace VRCSSDateTimeFixer.Tests.Services
             Console.SetOut(_outputWriter);
             Console.SetError(_errorWriter);
 
-            _progressDisplay = new ProgressDisplay();
+            // 明示的にライターを渡して、並行テストによる Console の差し替え競合を回避
+            _progressDisplay = new ProgressDisplay(_outputWriter, _errorWriter);
         }
 
         protected virtual void Dispose(bool disposing)
