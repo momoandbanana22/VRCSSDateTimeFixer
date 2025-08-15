@@ -4,17 +4,34 @@
 # Configuration
 . .\version.ps1
 
-# Check if GitHub CLI is installed
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    Write-Error "GitHub CLI (gh) is not installed. Please install it from https://cli.github.com/"
+# Check if GitHub CLI is installed (robust PATH + well-known locations)
+$ghCmd = $null
+$gh = Get-Command gh -ErrorAction SilentlyContinue
+if ($gh) { $ghCmd = $gh.Source }
+if (-not $ghCmd) {
+    $candidates = @()
+    if ($Env:ProgramFiles) { $candidates += (Join-Path $Env:ProgramFiles 'GitHub CLI\gh.exe') }
+    if (${Env:ProgramFiles(x86)}) { $candidates += (Join-Path ${Env:ProgramFiles(x86)} 'GitHub CLI\gh.exe') }
+    if ($Env:LOCALAPPDATA) {
+        $candidates += (Join-Path $Env:LOCALAPPDATA 'Programs\GitHub CLI\gh.exe')
+        $candidates += (Join-Path $Env:LOCALAPPDATA 'Programs\gh\bin\gh.exe')
+        $candidates += (Join-Path $Env:LOCALAPPDATA 'Microsoft\WinGet\Links\gh.exe')
+    }
+    if ($Env:ChocolateyInstall) { $candidates += (Join-Path $Env:ChocolateyInstall 'bin\gh.exe') }
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path $p)) { $ghCmd = $p; break }
+    }
+}
+if (-not $ghCmd) {
+    Write-Error "GitHub CLI (gh) is not installed or not found in PATH. Please install from https://cli.github.com/ and restart your shell."
     exit 1
 }
 
 # Check if user is logged in to GitHub
-$ghAuth = gh auth status 2>&1
+$ghAuth = & $ghCmd auth status 2>&1
 if ($ghAuth -like "*not logged*" -or $ghAuth -like "*not authenticated*") {
     Write-Host "You need to authenticate with GitHub. Please follow the prompts..." -ForegroundColor Yellow
-    gh auth login
+    & $ghCmd auth login
 }
 
 # Verify the release
