@@ -106,3 +106,6 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+
+# Release distribution artifacts
+dist/
