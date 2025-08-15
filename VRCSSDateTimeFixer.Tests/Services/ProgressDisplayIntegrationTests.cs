@@ -79,7 +79,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
 
             // Assert
             var output = _outputWriter.ToString().Trim();
-            var expectedOutput = $"{fileName}:2022年08月31日 21時54分39.227 作成日時：更新済 更新日時：更新済 撮影日時：更新済";
+            var expectedOutput = $"{fileName}:2022年08月31日 21時54分39秒.227 作成日時：更新済 更新日時：更新済 撮影日時：更新済";
             Assert.Equal(expectedOutput, output);
         }
 
@@ -99,7 +99,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
 
             // Assert
             var output = _outputWriter.ToString().Trim();
-            var expectedOutput = $"{fileName}:2023年01月01日 12時00分00.000 作成日時：スキップ 更新日時：スキップ 撮影日時：スキップ";
+            var expectedOutput = $"{fileName}:2023年01月01日 12時00分00秒.000 作成日時：スキップ 更新日時：スキップ 撮影日時：スキップ";
             Assert.Equal(expectedOutput, output);
         }
 

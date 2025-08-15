@@ -78,7 +78,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
-            string expected = ":2022年08月31日 21時54分39.227";
+            string expected = ":2022年08月31日 21時54分39秒.227";
 
             // Act
             _progressDisplay.StartProcessing("test");
@@ -144,7 +144,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         public void ShowExifUpdateResult_更新成功時にバッファの内容を出力する()
         {
             // Arrange
-            string expected = "test:2022年08月31日 21時54分39.227 作成日時：更新済 更新日時：更新済 撮影日時：更新済" + Environment.NewLine;
+            string expected = "test:2022年08月31日 21時54分39秒.227 作成日時：更新済 更新日時：更新済 撮影日時：更新済" + Environment.NewLine;
 
             // Act
             _progressDisplay.StartProcessing("test");

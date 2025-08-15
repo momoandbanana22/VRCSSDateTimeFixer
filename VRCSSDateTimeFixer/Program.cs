@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 using VRCSSDateTimeFixer.Services;
 using VRCSSDateTimeFixer.Validators;
@@ -24,6 +25,9 @@ namespace VRCSSDateTimeFixer
 
         public static int Main(string[] args)
         {
+            // 日本語表示の文字化けを防ぐため UTF-8 を明示
+            Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            Console.InputEncoding = Encoding.UTF8;
             var rootCommand = BuildCommandLine();
             return rootCommand.Invoke(args);
         }

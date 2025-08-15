@@ -33,19 +33,17 @@ namespace VRCSSDateTimeFixer.Services
         {
             _output = output ?? throw new ArgumentNullException(nameof(output));
             _errorOutput = errorOutput ?? throw new ArgumentNullException(nameof(errorOutput));
-            // 出力はデフォルトで抑制。環境変数で明示的に有効化。
-            // 有効化条件: VRCSS_DEBUG_CONSOLE=1 なら出力有効
-            var debugEnable = string.Equals(
-                Environment.GetEnvironmentVariable("VRCSS_DEBUG_CONSOLE"),
-                "1",
-                StringComparison.Ordinal
-            );
-
-            // 起動時点の既定 Console 出力を使う場合のみ抑制を適用する。
+            // 既定では出力する。環境変数で明示的に抑制可能。
+            // 抑制条件: VRCSS_SUPPRESS_CONSOLE=1 かつ、起動時点の既定 Console 出力を使っている場合のみ抑制。
             // （テストで Console.SetOut/SetError により差し替えられた場合は抑制しない）
             bool usingDefaultConsole = ReferenceEquals(_output, s_initialConsoleOut)
                 && ReferenceEquals(_errorOutput, s_initialConsoleError);
-            _suppressOutput = usingDefaultConsole && !debugEnable;
+            var suppressEnable = string.Equals(
+                Environment.GetEnvironmentVariable("VRCSS_SUPPRESS_CONSOLE"),
+                "1",
+                StringComparison.Ordinal
+            );
+            _suppressOutput = usingDefaultConsole && suppressEnable;
         }
 
         /// <summary>
@@ -70,7 +68,7 @@ namespace VRCSSDateTimeFixer.Services
         {
             if (_isDisposed) return;
             // 日時をバッファに追加（コロン付き）
-            _outputBuffer.Append($":{dateTime:yyyy年MM月dd日 HH時mm分ss.fff}");
+            _outputBuffer.Append($":{dateTime:yyyy年MM月dd日 HH時mm分ss'秒'.fff}");
         }
 
         /// <summary>
