@@ -93,9 +93,10 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                 // Verify Exif data after update
                 using (var image = await Task.Run(() => Image.Load(testImageFile)))
                 {
-                    bool hasExif = image.Metadata.ExifProfile != null;
+                    var exif = image.Metadata.ExifProfile;
+                    bool hasExif = exif != null;
                     Console.WriteLine($"[TEST] File has Exif data after update: {hasExif}");
-                    if (hasExif && image.Metadata.ExifProfile.TryGetValue(ExifTag.DateTimeOriginal, out var dateTimeOriginal))
+                    if (exif?.TryGetValue(ExifTag.DateTimeOriginal, out var dateTimeOriginal) == true)
                     {
                         Console.WriteLine($"[TEST] DateTimeOriginal after update: {dateTimeOriginal?.ToString()}");
                     }
