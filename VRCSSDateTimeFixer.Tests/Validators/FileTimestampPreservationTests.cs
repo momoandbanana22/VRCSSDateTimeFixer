@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 using Moq;
@@ -16,6 +17,7 @@ using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Validators
 {
+    [Collection("ConsoleCapture")]
     public class FileTimestampPreservationTests : IDisposable
     {
         private const string TestImageName = "VRChat_1920x1080_2022-08-31_21-54-39.227.png";
@@ -44,7 +46,7 @@ namespace VRCSSDateTimeFixer.Tests.Validators
             {
                 // Arrange - Create a proper PNG file with Exif data
                 string testImageFile = CreateTestPngFileWithExif();
-                Console.WriteLine($"[TEST] Created test file at: {testImageFile}");
+                Debug.WriteLine($"[TEST] Created test file at: {testImageFile}");
 
                 // Set initial timestamps
                 var initialCreationTime = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local);
@@ -53,7 +55,7 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                 File.SetCreationTime(testImageFile, initialCreationTime);
                 File.SetLastWriteTime(testImageFile, initialLastWriteTime);
 
-                Console.WriteLine($"[TEST] Set initial timestamps - Creation: {initialCreationTime}, LastWrite: {initialLastWriteTime}");
+                Debug.WriteLine($"[TEST] Set initial timestamps - Creation: {initialCreationTime}, LastWrite: {initialLastWriteTime}");
 
                 // Ensure the file has a valid VRChat screenshot name for date extraction
                 string directory = Path.GetDirectoryName(testImageFile) ?? string.Empty;
@@ -68,45 +70,45 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                 testImageFile = validName;
                 _tempFiles.Add(testImageFile);
 
-                Console.WriteLine($"[TEST] Moved to valid filename: {testImageFile}");
-                Console.WriteLine($"[TEST] File exists: {File.Exists(testImageFile)}");
+                Debug.WriteLine($"[TEST] Moved to valid filename: {testImageFile}");
+                Debug.WriteLine($"[TEST] File exists: {File.Exists(testImageFile)}");
 
                 // Verify the file has the expected name format
                 string fileName = Path.GetFileName(testImageFile);
-                Console.WriteLine($"[TEST] Verifying file name format: {fileName}");
+                Debug.WriteLine($"[TEST] Verifying file name format: {fileName}");
                 Assert.StartsWith("VRChat_", fileName);
 
                 // Verify the file has content
                 var fileInfo = new FileInfo(testImageFile);
-                Console.WriteLine($"[TEST] File size: {fileInfo.Length} bytes");
+                Debug.WriteLine($"[TEST] File size: {fileInfo.Length} bytes");
                 Assert.True(fileInfo.Length > 0, "Test file is empty");
 
                 // Verify Exif data exists before update
                 using (var image = await Task.Run(() => Image.Load(testImageFile)))
                 {
                     bool hasExif = image.Metadata.ExifProfile != null;
-                    Console.WriteLine($"[TEST] File has Exif data before update: {hasExif}");
+                    Debug.WriteLine($"[TEST] File has Exif data before update: {hasExif}");
                     Assert.True(hasExif, "Test file should have Exif data before update");
                 }
 
                 // Act - Update Exif data
-                Console.WriteLine("[TEST] Calling UpdateExifDateAsync...");
+                Debug.WriteLine("[TEST] Calling UpdateExifDateAsync...");
                 bool result = await FileTimestampUpdater.UpdateExifDateAsync(testImageFile);
-                Console.WriteLine($"[TEST] UpdateExifDateAsync result: {result}");
+                Debug.WriteLine($"[TEST] UpdateExifDateAsync result: {result}");
 
                 // Verify Exif data after update
                 using (var image = await Task.Run(() => Image.Load(testImageFile)))
                 {
                     var exif = image.Metadata.ExifProfile;
                     bool hasExif = exif != null;
-                    Console.WriteLine($"[TEST] File has Exif data after update: {hasExif}");
+                    Debug.WriteLine($"[TEST] File has Exif data after update: {hasExif}");
                     if (exif?.TryGetValue(ExifTag.DateTimeOriginal, out var dateTimeOriginal) == true)
                     {
-                        Console.WriteLine($"[TEST] DateTimeOriginal after update: {dateTimeOriginal?.ToString()}");
+                        Debug.WriteLine($"[TEST] DateTimeOriginal after update: {dateTimeOriginal?.ToString()}");
                     }
                     else
                     {
-                        Console.WriteLine("[TEST] Could not read DateTimeOriginal from Exif data");
+                        Debug.WriteLine("[TEST] Could not read DateTimeOriginal from Exif data");
                     }
                 }
 
@@ -114,7 +116,7 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                 var afterCreationTime = File.GetCreationTime(testImageFile);
                 var afterLastWriteTime = File.GetLastWriteTime(testImageFile);
 
-                Console.WriteLine($"[TEST] Timestamps after update - Creation: {afterCreationTime}, LastWrite: {afterLastWriteTime}");
+                Debug.WriteLine($"[TEST] Timestamps after update - Creation: {afterCreationTime}, LastWrite: {afterLastWriteTime}");
 
                 // Assert
                 Assert.True(result, "Exif update should succeed. Make sure the test file contains valid Exif data.");
@@ -125,7 +127,7 @@ namespace VRCSSDateTimeFixer.Tests.Validators
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[TEST ERROR] {ex}");
+                Debug.WriteLine($"[TEST ERROR] {ex}");
                 throw;
             }
         }
@@ -164,8 +166,8 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                     image.SaveAsPng(stream, encoder);
                 }
 
-                Console.WriteLine($"Created test image with Exif data at: {tempFile}");
-                Console.WriteLine($"Image size: {new FileInfo(tempFile).Length} bytes");
+                Debug.WriteLine($"Created test image with Exif data at: {tempFile}");
+                Debug.WriteLine($"Image size: {new FileInfo(tempFile).Length} bytes");
 
                 // Verify the file was created and has content
                 if (!File.Exists(tempFile) || new FileInfo(tempFile).Length == 0)
@@ -181,7 +183,7 @@ namespace VRCSSDateTimeFixer.Tests.Validators
                         throw new InvalidOperationException("Failed to create Exif profile in test image");
                     }
 
-                    Console.WriteLine("Successfully verified Exif data in test image");
+                    Debug.WriteLine("Successfully verified Exif data in test image");
                 }
             }
 

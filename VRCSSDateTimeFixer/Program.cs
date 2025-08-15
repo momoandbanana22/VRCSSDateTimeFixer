@@ -22,7 +22,8 @@ namespace VRCSSDateTimeFixer
             description: "サブディレクトリを再帰的に処理する",
             getDefaultValue: () => false);
 
-        private static readonly ProgressDisplay _progressDisplay = new();
+        // ProgressDisplay は Console の差し替えタイミングに依存するため、
+        // テストと相性が良いように各処理単位でインスタンス化する。
 
         public static int Main(string[] args)
         {
@@ -48,7 +49,8 @@ namespace VRCSSDateTimeFixer
                 }
                 catch (Exception ex)
                 {
-                    _progressDisplay.ShowError($"エラーが発生しました: {ex.Message}");
+                    // グローバルな ProgressDisplay を使わず、直接標準エラーへ
+                    Console.Error.WriteLine($"エラー: エラーが発生しました: {ex.Message}");
                     Environment.Exit(1);
                 }
             }, PathArgument, RecursiveOption);
@@ -76,24 +78,28 @@ namespace VRCSSDateTimeFixer
         {
             try
             {
-                _progressDisplay.StartProcessing(Path.GetFileName(filePath));
-
-                // ファイル名から日時を取得
+                // ファイル名から日時を取得（無効な場合はスキップとして1行のみ出力）
                 string fileName = Path.GetFileName(filePath);
-                DateTime? dateTime = FileNameValidator.GetDateTimeFromFileName(fileName);
-
-                if (!dateTime.HasValue)
+                DateTime extracted;
+                try
                 {
-                    _progressDisplay.ShowError($"{filePath}: ファイル名から日時を抽出できません");
+                    extracted = FileNameValidator.GetDateTimeFromFileName(fileName);
+                }
+                catch (ArgumentException)
+                {
+                    // 無効なファイル名はエラーにせずスキップ（標準出力1行のみ）
+                    Console.WriteLine($"{fileName}：スキップ（ファイル名から日時を抽出できません）");
                     return;
                 }
 
-                _progressDisplay.ShowExtractedDateTime(dateTime.Value);
+                using var progress = new ProgressDisplay();
+                progress.StartProcessing(fileName);
+                progress.ShowExtractedDateTime(extracted);
 
                 // ファイルのタイムスタンプを更新
                 var (creationTimeUpdated, lastWriteTimeUpdated) = await FileTimestampUpdater.UpdateFileTimestampAsync(filePath);
-                _progressDisplay.ShowCreationTimeUpdateResult(creationTimeUpdated);
-                _progressDisplay.ShowLastWriteTimeUpdateResult(lastWriteTimeUpdated);
+                progress.ShowCreationTimeUpdateResult(creationTimeUpdated);
+                progress.ShowLastWriteTimeUpdateResult(lastWriteTimeUpdated);
 
                 // Exif情報を更新（タイムスタンプの復元は UpdateExifDateAsync 側で完結）
                 bool exifUpdated = false;
@@ -101,15 +107,16 @@ namespace VRCSSDateTimeFixer
                 {
                     exifUpdated = await FileTimestampUpdater.UpdateExifDateAsync(filePath);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    _progressDisplay.ShowError($"Exifの更新中にエラーが発生しました: {ex.Message}");
+                    // ここでは進捗表示の文脈に乗せるため、エラーは記録せず結果でスキップ表示に任せる
+                    // 補足: エラー詳細は必要であればログへ出す実装に切替可能
                 }
-                _progressDisplay.ShowExifUpdateResult(exifUpdated);
+                progress.ShowExifUpdateResult(exifUpdated);
             }
             catch (Exception ex)
             {
-                _progressDisplay.ShowError($"{filePath}: {ex.Message}");
+                Console.Error.WriteLine($"エラー: {filePath}: {ex.Message}");
             }
         }
 

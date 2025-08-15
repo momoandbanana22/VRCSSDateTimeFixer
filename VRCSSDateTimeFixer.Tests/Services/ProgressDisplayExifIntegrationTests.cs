@@ -7,6 +7,7 @@ using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services;
 
+[Collection("ConsoleCapture")]
 public class ProgressDisplayExifIntegrationTests
 {
     private static string CreateTestImage(string directory, string fileNameWithExt)
@@ -24,25 +25,35 @@ public class ProgressDisplayExifIntegrationTests
     public async Task ProcessFileAsync_WhenExifUpdateFails_DisplaysSkip()
     {
         // Arrange: コンソール出力のキャプチャを先に設定（Program の静的 ProgressDisplay 初期化前）
+        var originalOut = Console.Out;
+        var originalErr = Console.Error;
         var sw = new StringWriter();
-        Console.SetOut(sw);
-        Console.SetError(sw);
+        try
+        {
+            Console.SetOut(sw);
+            Console.SetError(sw);
 
-        var dir = Path.Combine(Path.GetTempPath(), "vrcss_progress_tests");
-        var path = CreateTestImage(dir, "VRChat_1920x1080_2022-08-31_21-54-39.227.png");
+            var dir = Path.Combine(Path.GetTempPath(), "vrcss_progress_tests");
+            var path = CreateTestImage(dir, "VRChat_1920x1080_2022-08-31_21-54-39.227.png");
 
-        await using var lockStream = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.ReadWrite,
-            FileShare.None // 排他ロックで Exif 更新を失敗させる
-        );
+            await using var lockStream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.None // 排他ロックで Exif 更新を失敗させる
+            );
 
-        // Act: Exif 更新が false となり、表示は「撮影日時：スキップ」のはず
-        await VRCSSDateTimeFixer.Program.ProcessFileAsync(path);
+            // Act: Exif 更新が false となり、表示は「撮影日時：スキップ」のはず
+            await VRCSSDateTimeFixer.Program.ProcessFileAsync(path);
 
-        // Assert
-        var output = sw.ToString();
-        Assert.Contains("撮影日時：スキップ", output);
+            // Assert
+            var output = sw.ToString();
+            Assert.Contains("撮影日時：スキップ", output);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalErr);
+        }
     }
 }
