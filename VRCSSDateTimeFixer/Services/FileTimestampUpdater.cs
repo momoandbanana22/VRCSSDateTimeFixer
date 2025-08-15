@@ -212,6 +212,7 @@ namespace VRCSSDateTimeFixer
                 // 読み取り専用属性を一時的に解除（using 外で行う）
                 var attributes = File.GetAttributes(filePath);
                 bool wasReadOnly = (attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly;
+
                 if (wasReadOnly)
                 {
                     File.SetAttributes(filePath, attributes & ~FileAttributes.ReadOnly);
@@ -234,7 +235,10 @@ namespace VRCSSDateTimeFixer
                         {
                             ext = ".png"; // 既定はPNG
                         }
-                        tempFile = Path.Combine(Path.GetTempPath(), $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}{ext}");
+                        tempFile = Path.Combine(
+                            Path.GetTempPath(),
+                            $"{Path.GetFileNameWithoutExtension(Path.GetRandomFileName())}{ext}"
+                        );
 
                         await Task.Run(() =>
                         {
@@ -251,7 +255,7 @@ namespace VRCSSDateTimeFixer
                             {
                                 var encoder = new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder
                                 {
-                                    Quality = 90
+                                    Quality = 90,
                                 };
                                 image.Save(tempFile, encoder);
                             }
@@ -280,7 +284,12 @@ namespace VRCSSDateTimeFixer
                     {
                         try
                         {
-                            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            using var fs = new FileStream(
+                                filePath,
+                                FileMode.Open,
+                                FileAccess.Read,
+                                FileShare.Read
+                            );
                             break; // 開けたらOK
                         }
                         catch (IOException)
@@ -296,12 +305,30 @@ namespace VRCSSDateTimeFixer
                 finally
                 {
                     // 一時ファイルを削除（存在する場合）
-                    try { if (!string.IsNullOrEmpty(tempFile) && File.Exists(tempFile)) File.Delete(tempFile); } catch { }
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(tempFile) && File.Exists(tempFile))
+                        {
+                            File.Delete(tempFile);
+                        }
+                    }
+                    catch
+                    {
+                    }
 
                     // 読み取り専用属性を元に戻す
                     if (wasReadOnly)
                     {
-                        try { File.SetAttributes(filePath, File.GetAttributes(filePath) | FileAttributes.ReadOnly); } catch { }
+                        try
+                        {
+                            File.SetAttributes(
+                                filePath,
+                                File.GetAttributes(filePath) | FileAttributes.ReadOnly
+                            );
+                        }
+                        catch
+                        {
+                        }
                     }
                 }
             }
