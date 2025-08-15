@@ -1,7 +1,9 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
+
 using VRCSSDateTimeFixer.Services;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services

@@ -1,4 +1,5 @@
 using VRCSSDateTimeFixer.Services;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services

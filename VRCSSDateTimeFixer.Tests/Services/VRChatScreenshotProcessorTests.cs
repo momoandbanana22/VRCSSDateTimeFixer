@@ -1,4 +1,5 @@
 using VRCSSDateTimeFixer.Services;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services
@@ -96,7 +97,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
                                 255);
                         }
                     }
-                    
+
                     // 拡張子に応じて適切なエンコーダーを選択
                     var extension = Path.GetExtension(testImageFile).ToLowerInvariant();
                     if (extension == ".jpg" || extension == ".jpeg")

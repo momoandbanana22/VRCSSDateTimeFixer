@@ -1,10 +1,13 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.PixelFormats;
+
 using VRCSSDateTimeFixer;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests
@@ -22,7 +25,7 @@ namespace VRCSSDateTimeFixer.Tests
         {
             string path = Path.Combine(directory, $"{Guid.NewGuid()}.png");
             using var image = new Image<Rgba32>(100, 100);
-            image[0,0] = new Rgba32(255,0,0,255);
+            image[0, 0] = new Rgba32(255, 0, 0, 255);
             image.SaveAsPng(path);
             return path;
         }

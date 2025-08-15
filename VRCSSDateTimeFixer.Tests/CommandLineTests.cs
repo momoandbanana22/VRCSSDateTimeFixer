@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Parsing;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests
