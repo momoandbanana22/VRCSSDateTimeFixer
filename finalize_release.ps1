@@ -2,7 +2,7 @@
 # This script should be run after all tests have passed and code review is complete
 
 # Configuration
-$version = "1.0.0"
+. "$PSScriptRoot\version.ps1"
 $releaseDir = "bin\\Release\\Publish"
 $distDir = "dist"
 

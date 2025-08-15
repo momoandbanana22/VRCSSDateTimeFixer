@@ -2,7 +2,7 @@
 # Requires GitHub CLI (gh) to be installed and authenticated
 
 # Configuration
-$version = "1.0.0"
+. "$PSScriptRoot\version.ps1"
 $releaseNotes = @"
 ## What's New in Version $version
 
@@ -44,10 +44,10 @@ $releaseNotes | Out-File -FilePath $releaseNotesFile -Encoding utf8
 
 try {
     # Create the release draft
-    gh release create "v$version" \
-        --title "Version $version" \
-        --notes-file "$releaseNotesFile" \
-        --draft \
+    gh release create "v$version" `
+        --title "Version $version" `
+        --notes-file "$releaseNotesFile" `
+        --draft `
         --prerelease
 
     # Upload the release asset

@@ -43,12 +43,14 @@
 > - リリースパッケージのビルド
 > - 配布用ファイルのコピー
 
-#### 2.1 バージョン番号の更新
-以下のファイルの `$version` 変数を新しいバージョン番号に更新してください：
-- `finalize_release.ps1`
-- `Release.ps1`
-- `create_release.ps1`
-- プロジェクトファイル（`.csproj`）のバージョン情報
+#### 2.1 バージョン番号の更新（.csproj → version.ps1 に同期）
+本プロジェクトでは、バージョンのソース・オブ・トゥルースは **`.csproj` の `<Version>`** です。PowerShell スクリプト群は `version.ps1` を読み込んで動作します。手順は次のとおり：
+1. プロジェクトファイル（`.csproj`）の `<Version>` を更新する
+2. ルートで次を実行し、`version.ps1` を生成する：
+   ```powershell
+   .\read_version_from_csproj.ps1
+   ```
+> メモ: 各スクリプト（`Release.ps1`/`finalize_release.ps1`/`create_release.ps1`/`publish_release.ps1`/`build.ps1`）は `version.ps1` を参照するため、個別に `$version` を修正する必要はありません。
 
 #### 2.2 変更履歴の更新
 `CHANGELOG.md` を編集して、新しいバージョンのセクションを追加してください：

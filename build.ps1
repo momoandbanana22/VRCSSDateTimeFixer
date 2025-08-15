@@ -1,7 +1,7 @@
 # Build and package script for VRCSSDateTimeFixer
 
 # Configuration
-$version = "1.0.0"
+. "$PSScriptRoot\version.ps1"
 $configuration = "Release"
 $runtime = "win-x64"
 $projectPath = "VRCSSDateTimeFixer\VRCSSDateTimeFixer.csproj"

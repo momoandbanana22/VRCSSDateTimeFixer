@@ -2,7 +2,7 @@
 # This should be run after finalize_release.ps1
 
 # Configuration
-$version = "1.0.0"
+. .\version.ps1
 
 # Check if GitHub CLI is installed
 if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
