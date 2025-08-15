@@ -52,7 +52,7 @@ namespace VRCSSDateTimeFixer.Tests.Services
         private string GetErrorOutput() => _errorWriter.ToString();
 
         [Fact]
-        public void StartProcessing_ファイル名をバッファに保存する()
+        public void StartProcessing_ファイル名を即時に出力する()
         {
             // Arrange
             string fileName = "VRChat_1920x1080_2022-08-31_21-54-39.227.png";
@@ -60,21 +60,14 @@ namespace VRCSSDateTimeFixer.Tests.Services
             // Act
             _progressDisplay.StartProcessing(fileName);
 
-            // 出力はまだされていないはず
+            // Assert: 改行なしでファイル名が即時出力されている
             var output = GetOutput();
-            Assert.Equal(string.Empty, output);
-
-            // 次の出力で確認
-            _progressDisplay.ShowExifUpdateResult(true);
-            output = GetOutput();
-
-            // Assert
             Assert.StartsWith(fileName, output);
-            Assert.Contains("撮影日時：更新済", output);
+            Assert.DoesNotContain(Environment.NewLine, output);
         }
 
         [Fact]
-        public void ShowExtractedDateTime_日時をバッファに保存する()
+        public void ShowExtractedDateTime_日時を即時に追記出力する()
         {
             // Arrange
             var dateTime = new DateTime(2022, 8, 31, 21, 54, 39, 227);
@@ -84,60 +77,42 @@ namespace VRCSSDateTimeFixer.Tests.Services
             _progressDisplay.StartProcessing("test");
             _progressDisplay.ShowExtractedDateTime(dateTime);
 
-            // 出力はまだされていないはず
+            // Assert: 即時に追記出力され、改行はまだない
             var output = GetOutput();
-            Assert.Equal(string.Empty, output);
-
-            // 次の出力で確認
-            _progressDisplay.ShowExifUpdateResult(true);
-            output = GetOutput();
-
-            // Assert
-            Assert.Contains(expected, output);
+            Assert.Contains("test" + expected, output);
+            Assert.DoesNotContain(Environment.NewLine, output);
         }
 
         [Fact]
-        public void ShowCreationTimeUpdateResult_更新成功時に更新済みをバッファに保存する()
+        public void ShowCreationTimeUpdateResult_結果を即時に追記出力する()
         {
             // Arrange
-            string expected = "作成日時：更新済";
+            string expected = " 作成日時：更新済";
 
             // Act
             _progressDisplay.StartProcessing("test");
             _progressDisplay.ShowCreationTimeUpdateResult(true);
 
-            // 出力はまだされていないはず
+            // Assert: 即時追記、改行なし
             var output = GetOutput();
-            Assert.Equal(string.Empty, output);
-
-            // 次の出力で確認
-            _progressDisplay.ShowExifUpdateResult(true);
-            output = GetOutput();
-
-            // Assert
-            Assert.Contains(expected, output);
+            Assert.Contains("test" + expected, output);
+            Assert.DoesNotContain(Environment.NewLine, output);
         }
 
         [Fact]
-        public void ShowLastWriteTimeUpdateResult_更新成功時に更新済みをバッファに保存する()
+        public void ShowLastWriteTimeUpdateResult_結果を即時に追記出力する()
         {
             // Arrange
-            string expected = "更新日時：更新済";
+            string expected = " 更新日時：更新済";
 
             // Act
             _progressDisplay.StartProcessing("test");
             _progressDisplay.ShowLastWriteTimeUpdateResult(true);
 
-            // 出力はまだされていないはず
+            // Assert: 即時追記、改行なし
             var output = GetOutput();
-            Assert.Equal(string.Empty, output);
-
-            // 次の出力で確認
-            _progressDisplay.ShowExifUpdateResult(true);
-            output = GetOutput();
-
-            // Assert
-            Assert.Contains(expected, output);
+            Assert.Contains("test" + expected, output);
+            Assert.DoesNotContain(Environment.NewLine, output);
         }
 
         [Fact]

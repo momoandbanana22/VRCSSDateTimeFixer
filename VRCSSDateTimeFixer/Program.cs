@@ -75,7 +75,7 @@ namespace VRCSSDateTimeFixer
         {
             try
             {
-                _progressDisplay.StartProcessing(filePath);
+                _progressDisplay.StartProcessing(Path.GetFileName(filePath));
 
                 // ファイル名から日時を取得
                 string fileName = Path.GetFileName(filePath);
@@ -121,7 +121,6 @@ namespace VRCSSDateTimeFixer
             int totalFiles = files.Count();
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            _progressDisplay.StartProcessing(directoryPath);
             Console.WriteLine($"対象ファイル数: {totalFiles} 件");
             Console.WriteLine(new string('=', 80));
 

@@ -1,7 +1,10 @@
 using System.Text;
+
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+
 using VRCSSDateTimeFixer;
+
 using Xunit;
 
 namespace VRCSSDateTimeFixer.Tests.Services;

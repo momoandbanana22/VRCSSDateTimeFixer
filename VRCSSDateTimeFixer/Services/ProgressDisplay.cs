@@ -55,9 +55,20 @@ namespace VRCSSDateTimeFixer.Services
             if (string.IsNullOrEmpty(fileName))
                 throw new ArgumentNullException(nameof(fileName));
 
-            // バッファをクリアしてファイル名を追加
+            // バッファをクリアしてファイル名を追加し、即時出力（改行なし）
             _outputBuffer.Clear();
             _outputBuffer.Append(fileName);
+            if (!_suppressOutput)
+            {
+                try
+                {
+                    _output.Write(_outputBuffer.ToString());
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
+            }
         }
 
         /// <summary>
@@ -67,8 +78,19 @@ namespace VRCSSDateTimeFixer.Services
         public void ShowExtractedDateTime(DateTime dateTime)
         {
             if (_isDisposed) return;
-            // 日時をバッファに追加（コロン付き）
+            // 日時をバッファに追加し、即時出力（改行なし）
             _outputBuffer.Append($":{dateTime:yyyy年MM月dd日 HH時mm分ss'秒'.fff}");
+            if (!_suppressOutput)
+            {
+                try
+                {
+                    _output.Write($":{dateTime:yyyy年MM月dd日 HH時mm分ss'秒'.fff}");
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
+            }
         }
 
         /// <summary>
@@ -78,7 +100,19 @@ namespace VRCSSDateTimeFixer.Services
         public void ShowCreationTimeUpdateResult(bool isUpdated)
         {
             if (_isDisposed) return;
-            _outputBuffer.Append($" 作成日時：{(isUpdated ? "更新済" : "スキップ")}");
+            string chunk = $" 作成日時：{(isUpdated ? "更新済" : "スキップ")}";
+            _outputBuffer.Append(chunk);
+            if (!_suppressOutput)
+            {
+                try
+                {
+                    _output.Write(chunk);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
+            }
         }
 
         /// <summary>
@@ -88,7 +122,19 @@ namespace VRCSSDateTimeFixer.Services
         public void ShowLastWriteTimeUpdateResult(bool isUpdated)
         {
             if (_isDisposed) return;
-            _outputBuffer.Append($" 更新日時：{(isUpdated ? "更新済" : "スキップ")}");
+            string chunk = $" 更新日時：{(isUpdated ? "更新済" : "スキップ")}";
+            _outputBuffer.Append(chunk);
+            if (!_suppressOutput)
+            {
+                try
+                {
+                    _output.Write(chunk);
+                }
+                catch (ObjectDisposedException)
+                {
+                    // テスト環境等で出力が破棄されている場合は黙って無視
+                }
+            }
         }
 
         /// <summary>
@@ -98,12 +144,14 @@ namespace VRCSSDateTimeFixer.Services
         public void ShowExifUpdateResult(bool isUpdated)
         {
             if (_isDisposed) return;
-            _outputBuffer.Append($" 撮影日時：{(isUpdated ? "更新済" : "スキップ")}");
+            string chunk = $" 撮影日時：{(isUpdated ? "更新済" : "スキップ")}";
+            _outputBuffer.Append(chunk);
             if (!_suppressOutput)
             {
                 try
                 {
-                    _output.WriteLine(_outputBuffer.ToString());
+                    // 逐次出力のため最終段は追加分のみ改行付きで出力
+                    _output.WriteLine(chunk);
                 }
                 catch (ObjectDisposedException)
                 {
@@ -168,33 +216,29 @@ namespace VRCSSDateTimeFixer.Services
         /// <param name="disposing">マネージド リソースを解放する場合は true</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!_isDisposed)
+            if (_isDisposed) return;
+            if (disposing)
             {
-                if (disposing)
+                // 未改行のバッファが残っている場合は行として出力
+                if (_outputBuffer.Length > 0 && !_suppressOutput)
                 {
-                    // マネージド リソースを解放
-                    if (!_suppressOutput)
+                    try
                     {
-                        try
-                        {
-                            if (_outputBuffer.Length > 0)
-                            {
-                                _output.WriteLine(_outputBuffer.ToString());
-                                _outputBuffer.Clear();
-                            }
-                        }
-                        catch (ObjectDisposedException)
-                        {
-                            // 出力が既に破棄されている場合は無視
-                        }
+                        _output.WriteLine(_outputBuffer.ToString());
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // 出力が既に破棄されている場合は無視
                     }
                 }
-
-                _isDisposed = true;
+                _outputBuffer.Clear();
             }
+            _isDisposed = true;
         }
 
         /// <summary>
+        /// リソースを解放します。
+        /// </summary>
         /// ファイナライザー
         /// </summary>
         ~ProgressDisplay()
