@@ -1,5 +1,5 @@
 name: Feature request
-description: 新しい機能の提案（タイトルは feat(scope): で始めてください）
+description: "新しい機能の提案（タイトルは feat(scope): で始めてください）"
 title: "feat(scope): "
 labels:
   - type/feature
@@ -74,5 +74,5 @@ body:
       label: 開発プラクティス
       options:
         - label: practice/tdd を適用する（TDDで実装）
-     validations:
-       required: false
+    validations:
+      required: false
