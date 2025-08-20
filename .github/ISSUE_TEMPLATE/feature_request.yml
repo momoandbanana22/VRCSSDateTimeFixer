@@ -74,4 +74,5 @@ body:
       label: 開発プラクティス
       options:
         - label: practice/tdd を適用する（TDDで実装）
-          required: false
+     validations:
+       required: false
