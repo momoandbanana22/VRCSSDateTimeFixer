@@ -1,0 +1,59 @@
+name: Bug report
+description: 不具合の報告（タイトルは fix(scope): で始めてください）
+title: "fix(scope): "
+labels:
+  - type/bug
+  - status/ready
+  - priority/medium
+assignees: []
+body:
+  - type: checkboxes
+    id: area
+    attributes:
+      label: 影響領域（複数選択可）
+      options:
+        - label: area/cli
+        - label: area/validators
+        - label: area/services-timestamp
+        - label: area/services-exif
+    validations:
+      required: false
+  - type: input
+    id: scope
+    attributes:
+      label: scope（タイトルの scope に入れる簡潔な領域名）
+      placeholder: cli / validators / services-exif など
+    validations:
+      required: false
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が問題か、期待動作と実際の動作
+      placeholder: 例）`**/*.png` を指定してもサブディレクトリが処理されない
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 再現手順
+      description: 手順を番号付きで記載
+      placeholder: |
+        1. コマンドを実行: VRCSSDateTimeFixer "C:\\Shots\\**/*.png"
+        2. 出力ログを確認
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: ログ/エラーメッセージ
+      description: 可能なら実行結果やスタックトレースを貼り付け
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: バージョン / 実行環境
+      placeholder: アプリのバージョン、OS、.NET ランタイムなど
+    validations:
+      required: false
