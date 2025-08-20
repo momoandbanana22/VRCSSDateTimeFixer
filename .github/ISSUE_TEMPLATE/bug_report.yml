@@ -1,5 +1,5 @@
 name: Bug report
-description: 不具合の報告（タイトルは fix(scope): で始めてください）
+description: "不具合の報告（タイトルは fix(scope): で始めてください）"
 title: "fix(scope): "
 labels:
   - type/bug
